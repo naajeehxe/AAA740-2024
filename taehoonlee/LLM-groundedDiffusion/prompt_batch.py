@@ -36,7 +36,7 @@ if __name__ == "__main__":
     template = llm_kwargs.template
 
     # This is for visualizing bounding boxes
-    parse.img_dir = f"img_generations/imgs_{args.prompt_type}_template{template_version}"
+    parse.img_dir = f"img_generations/model_{args.model}_imgs_{args.prompt_type}_template{template_version}"
     if not args.no_visualize:
         os.makedirs(parse.img_dir, exist_ok=True)
 
