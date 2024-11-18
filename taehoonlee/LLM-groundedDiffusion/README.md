@@ -313,3 +313,8 @@ If you use our work or our implementation in this repo, or find them helpful, pl
     year={2023}
 }
 ```
+
+
+## Generate images
+
+CUDA_VISIBLE_DEVICES=2,3 python generate.py --prompt-type demo --model gpt-4 --save-suffix "gpt-4" --repeats 5 --frozen_step_ratio 0.5 --regenerate 1 --force_run_ind 0 --run-model lmd_plus --no-scale-boxes-default --template_version v0.1
