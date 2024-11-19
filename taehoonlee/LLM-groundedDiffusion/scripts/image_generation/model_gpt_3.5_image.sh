@@ -1,0 +1,11 @@
+CUDA_VISIBLE_DEVICES=2,3 python generate.py \
+  --prompt-type lmd \
+  --model StableBeluga2 \
+  --save-suffix "StableBeluga2" \
+  --repeats 1 \
+  --frozen_step_ratio 0.5 \
+  --regenerate 1 \
+  --force_run_ind 0 \
+  --run-model lmd_plus \
+  --no-scale-boxes-default \
+  --template_version v0.1
