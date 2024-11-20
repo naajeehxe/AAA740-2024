@@ -1,7 +1,7 @@
-CUDA_VISIBLE_DEVICES=4,5,6,7 python generate.py \
-  --prompt-type custom \
-  --model gpt-4 \
-  --save-suffix "gpt-4" \
+CUDA_VISIBLE_DEVICES=2,3 python generate.py \
+  --prompt-type lmd \
+  --model StableBeluga2 \
+  --save-suffix "StableBeluga2" \
   --repeats 1 \
   --frozen_step_ratio 0.5 \
   --regenerate 1 \

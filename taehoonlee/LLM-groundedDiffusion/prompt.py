@@ -58,6 +58,14 @@ prompts_demo_gpt4 = [
     "A realistic image of a white deer and a gray bear in an empty factory scene",
 ]
 
+prompts_custom_gpt4 = [
+    "A realistic photo of a brown squirrel sitting on a tree branch while holding an acorn with a bird nest above the squirrel and mushrooms growing at the base of the tree",
+    "A realistic photo of a hovering robot with blue lights scanning a digital map surrounded by tall glass buildings with a fountain in the foreground",
+    "A realistic photo of a golden fish swimming near coral reefs with a treasure chest partially buried in the sand and a school of small silver fish in the distance",
+    "A realistic photo of ornate mirror with a reflective silver frame positioned at eye level. His right hand is raised halfway, fingers slightly curled, as if testing the reflection, while his left hand rests at his side. In the mirror, his reflection mirrors his pose exactly, creating perfect symmetry. His head is slightly tilted to the left, and his gaze is fixed on the mirrored version of himself, his eyes sharp and intent. The man’s body faces directly toward the mirror, with his feet placed shoulder-width apart, visible in both the real and reflected image. The background behind him features a dimly lit room with subtle shadows, while the reflection showcases the same room with reversed details, adding a sense of surrealism. The lighting creates a soft glow around the man's face, emphasizing the duality of the real and the mirrored version, with every detail aligned down to the buttons on his shirt and the way his hair falls over his forehead.",
+
+]
+
 # Put what we want to generate when you query GPT-3.5 for demo here
 prompts_demo_gpt3_5 = []
 
@@ -68,6 +76,7 @@ prompt_types = [
     "lmd_attribution",
     "lmd_spatial",
     "lmd",
+    "custom",
 ]
 
 
@@ -90,12 +99,15 @@ def get_prompts(prompt_type, model, allow_non_exist=False):
         prompts_gpt4["demo"] = prompts_demo_gpt4
         prompts_gpt3_5["demo"] = prompts_demo_gpt3_5
 
+    elif prompt_type == "custom":
+        prompts_gpt4["custom"] = prompts_custom_gpt4
+
     if "all" in model:
         return prompts_gpt4.get(prompt_type, []) + prompts_gpt3_5.get(prompt_type, [])
     elif "gpt-4" in model:
         if allow_non_exist:
             return prompts_gpt4.get(prompt_type, [])
-        return prompts_gpt4[prompt_type]
+        return prompts_gpt4[prompt_type] # get the prompt from the prompt[key]
     else:
         # Default: gpt-3.5
         if allow_non_exist:

@@ -1,3 +1,5 @@
+import pdb
+
 from utils import parse, vis, cache
 from utils.llm import get_full_model_name, model_names
 from utils.parse import parse_input_with_negative, filter_boxes, show_boxes
@@ -175,10 +177,15 @@ model = get_full_model_name(model=args.model)
 
 cache.cache_format = "json"
 cache.cache_path = f'cache/cache_{args.prompt_type.replace("lmd_", "")}{"_" + template_version if template_version != "v5" else ""}_{model}.json'
-print(f"Loading LLM responses from cache {cache.cache_path}")
-cache.init_cache(allow_nonexist=False)
+# Cache path
+print(f"Loading LLM responses from cache {cache.cache_path}") # cache path.
+cache.init_cache(allow_nonexist=False) # global cache.
 
-prompts = get_prompts(prompt_type, model=model)
+prompts = get_prompts(prompt_type, model=model) # get the base prompts
+
+print(f"prompts:{prompts}")
+
+
 
 save_suffix = ("_" + args.save_suffix) if args.save_suffix else ""
 repeats = args.repeats
@@ -218,7 +225,7 @@ else:
         run_ind += 1
 
 print(f"Save dir: {save_dir}")
-
+# breakpoint()
 if args.sdxl:
     # Offload model saves GPU memory.
     sdxl.init(offload_model=True)
@@ -236,7 +243,7 @@ if args.regenerate > 1:
 for regenerate_ind in range(args.regenerate):
     print("regenerate_ind:", regenerate_ind)
     cache.reset_cache_access()
-    for prompt_ind, prompt in enumerate(tqdm(prompts, desc=f"Run: {save_dir}")):
+    for prompt_ind, prompt in enumerate(tqdm(prompts, desc=f"Run: {save_dir}")): # Generate images.
         # For `save_as_display`:
         save_ind = 0
 

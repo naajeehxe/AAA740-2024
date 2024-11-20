@@ -4,6 +4,7 @@ from utils import parse
 from utils.parse import parse_input_with_negative, bg_prompt_text, neg_prompt_text, filter_boxes, show_boxes
 from utils.llm import get_llm_kwargs, get_full_prompt, get_layout, model_names
 from utils import cache
+# from stablebeluga2 import tokenizer, model
 import matplotlib.pyplot as plt
 import argparse
 import time
@@ -48,14 +49,20 @@ if __name__ == "__main__":
     cache.init_cache()
 
     prompts_query = get_prompts(args.prompt_type, model=model)
+
+    ## prompts_query는 list 순회.
     
     for ind, prompt in enumerate(prompts_query):
+
+        # enumerate 해주기 때문에 실시하면..
+
         if isinstance(prompt, list):
             # prompt, seed
             prompt = prompt[0]
         prompt = prompt.strip().rstrip(".")
         
         response = cache.get_cache(prompt)
+
         if response is None:
             print(f"Cache miss: {prompt}")
             
@@ -65,7 +72,25 @@ if __name__ == "__main__":
                 print(prompt_full, end="")
                 print("#########")
                 resp = None
-            
+
+            # ## Stable Beluga 추가.
+            #     if args.model == "StableBeluga2"
+            #     print("### Sable_Beluga 2 pipeline 시작 ###")
+
+            #     # stable beluga model
+            #     tokenizer = stablebeluga2.tokenizer
+            #     model = stablebeluga2.model
+
+            #     # 1. get the full prompt (input)
+            #     prompt_full = get_full_prompt(template=template , prompt=prompt)
+
+            #     # 2. do the model inference
+            #     inputs = tokenizer(prompt_full, return_tensors="pt").to("cuda")
+            #     output = model.generate(**inputs, do_sample=True)
+
+            #     # 3. write output to the cache folder.
+                
+                        
             attempts = 0
             while True:
                 attempts += 1
@@ -103,6 +128,8 @@ if __name__ == "__main__":
                     print("Not saved. Will generate the same prompt again.")
                     continue
                 break
+        
+        
         else:
             print(f"Cache hit: {prompt}")
             
