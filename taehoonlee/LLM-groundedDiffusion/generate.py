@@ -1,5 +1,4 @@
 import pdb
-
 from utils import parse, vis, cache
 from utils.llm import get_full_model_name, model_names
 from utils.parse import parse_input_with_negative, filter_boxes, show_boxes
@@ -159,7 +158,7 @@ if not args.dry_run:
 else:
     version = "dry_run"
     run = None
-    generation = argparse.Namespace()
+    generation = argparse.Namespace() # generation 이라는 namespace 저장 ( argparse로 받은 인자 저장용. )
 
 # set visualizations to no-op in batch generation
 for k in vis.__dict__.keys():
@@ -312,7 +311,7 @@ for regenerate_ind in range(args.regenerate):
                     ind += 1
                     continue
 
-                show_boxes(
+                show_boxes( # make and save the bounding boxes.
                     gen_boxes,
                     bg_prompt=bg_prompt,
                     neg_prompt=neg_prompt,
@@ -321,16 +320,19 @@ for regenerate_ind in range(args.regenerate):
                 if not is_notebook:
                     plt.clf()
 
-                original_ind_base = (
+                original_ind_base = ( 
                     ind_override + regenerate_ind * LARGE_CONSTANT2
                     if ind_override is not None
                     else ind
                 )
 
-                for repeat_ind in range(repeats):
+                # Makes some images.
+                for repeat_ind in range(repeats): 
                     # This ensures different repeats have different seeds.
                     ind_offset = repeat_ind * LARGE_CONSTANT3 + seed_offset
-
+                    
+                    #* model setting.
+                    
                     if args.run_model in our_models:
                         # Our models load `extra_neg_prompt` from the spec
                         if args.no_synthetic_prompt:
@@ -384,12 +386,13 @@ for regenerate_ind in range(args.regenerate):
                             bg_seed=original_ind_base + ind_offset,
                             **run_kwargs,
                         )
-
+                    
                     output = output.image
-
+                    
                     if args.sdxl:
                         output = sdxl.refine(image=output, spec=spec, refine_seed=original_ind_base + ind_offset + LARGE_CONSTANT4, refinement_step_ratio=args.sdxl_step_ratio)
-
+                    
+                    
                     vis.display(output, "img", repeat_ind, save_ind_in_filename=False)
 
             except (KeyboardInterrupt, bdb.BdbQuit) as e:

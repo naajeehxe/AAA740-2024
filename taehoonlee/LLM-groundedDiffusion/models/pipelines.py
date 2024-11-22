@@ -1,3 +1,6 @@
+import os
+import matplotlib.pyplot as plt
+import pdb
 import torch
 from tqdm import tqdm
 from utils import guidance, schedule, boxdiff
@@ -8,6 +11,9 @@ import numpy as np
 from .attention import GatedSelfAttentionDense
 from .models import process_input_embeddings, torch_device
 import warnings
+
+os.makedirs('attention_maps', exist_ok=True)
+
 
 # All keys: [('down', 0, 0, 0), ('down', 0, 1, 0), ('down', 1, 0, 0), ('down', 1, 1, 0), ('down', 2, 0, 0), ('down', 2, 1, 0), ('mid', 0, 0, 0), ('up', 1, 0, 0), ('up', 1, 1, 0), ('up', 1, 2, 0), ('up', 2, 0, 0), ('up', 2, 1, 0), ('up', 2, 2, 0), ('up', 3, 0, 0), ('up', 3, 1, 0), ('up', 3, 2, 0)]
 # Note that the first up block is `UpBlock2D` rather than `CrossAttnUpBlock2D` and does not have attention. The last index is always 0 in our case since we have one `BasicTransformerBlock` in each `Transformer2DModel`.
@@ -333,8 +339,11 @@ def generate_gligen(model_dict, latents, input_embeddings, num_inference_steps, 
         Enabled: bboxes and phrases should be a list (batch dimension) of items (specify the bboxes/phrases of each image in the batch).
         Disabled: bboxes and phrases should be a list of bboxes and phrases specifying the bboxes/phrases of one image (no batch dimension).
     """
+
+    #* intialize models.
     vae, tokenizer, text_encoder, unet, scheduler, dtype = model_dict.vae, model_dict.tokenizer, model_dict.text_encoder, model_dict.unet, model_dict.scheduler, model_dict.dtype
     
+    #* process the (text) input embeddings.
     text_embeddings, _, cond_embeddings = process_input_embeddings(input_embeddings)
     
     if latents.dim() == 5:
@@ -419,14 +428,36 @@ def generate_gligen(model_dict, latents, input_embeddings, num_inference_steps, 
         # expand the latents if we are doing classifier-free guidance to avoid doing two forward passes.
         latent_model_input = torch.cat([latents] * 2)
 
+        pdb.set_trace()
+
         latent_model_input = scheduler.scale_model_input(latent_model_input, timestep=t)
-
         main_cross_attention_kwargs['save_attn_to_dict'] = {}
+        pdb.set_trace()
 
+        print(main_cross_attention_kwargs['save_attn_to_dict'])
+        pdb.set_trace()
         # predict the noise residual
         noise_pred = unet(latent_model_input, t, encoder_hidden_states=text_embeddings, 
                             cross_attention_kwargs=main_cross_attention_kwargs).sample
+        print(f"{main_cross_attention_kwargs['save_attn_to_dict']}, keys:{list(main_cross_attention_kwargs['save_attn_to_dict'].keys())}")
+
+        for i, key in enumerate(main_cross_attention_kwargs['save_attn_to_dict'].keys()):
+            attn_map = main_cross_attention_kwargs['save_attn_to_dict'][key]
+            print(f"shape : {attn_map.shape}")
+
+            # Visualize and save the attention map
+            plt.figure(figsize=(10, 10))
+            plt.imshow(attn_map[0].cpu().detach().numpy(), cmap='viridis')
+            plt.title(f"Attention Map for Key: {key}")
+            plt.colorbar()
+
+            # Save the figure
+            plt.savefig(f'attention_maps/attention_map_{key}.png')
+            plt.close()
+
         
+        pdb.set_trace()
+
         if return_saved_cross_attn:
             saved_attns.append(main_cross_attention_kwargs['save_attn_to_dict'])
             

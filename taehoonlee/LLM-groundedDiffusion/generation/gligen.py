@@ -83,11 +83,11 @@ def run(spec, gligen_scheduled_sampling_beta=0.4, bg_seed=1):
 
     latents = latents * scheduler.init_noise_sigma
 
-    latents, images = pipelines.generate_gligen(
+    latents, images = pipelines.generate_gligen( 
         model_dict,
-        latents,
-        input_embeddings,
-        num_inference_steps,
+        latents, 
+        input_embeddings, #* text input embeddings.
+        num_inference_steps, 
         bboxes,
         phrases,
         guidance_scale=guidance_scale,

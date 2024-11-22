@@ -66,7 +66,7 @@ def encode_prompts(tokenizer, text_encoder, prompts, negative_prompt="", return_
     
     text_input = tokenizer(
         prompts, padding="max_length", max_length=tokenizer.model_max_length, truncation=True, return_tensors="pt"
-    )
+    ) #* tokenize the input.
     
     max_length = text_input.input_ids.shape[-1]
     if one_uncond_input_only:

@@ -257,11 +257,11 @@ def compute_ca_lossv3(saved_attn, bboxes, object_positions, guidance_attn_keys, 
     
     for attn_key in guidance_attn_keys:
         # We only have 1 cross attention for mid.
-        attn_map_integrated = saved_attn[attn_key]
+        attn_map_integrated = saved_attn[attn_key] #* saved attention 
         if not attn_map_integrated.is_cuda:
             attn_map_integrated = attn_map_integrated.cuda()
         # Example dimension: [20, 64, 77]
-        attn_map = attn_map_integrated.squeeze(dim=0)
+        attn_map = attn_map_integrated.squeeze(dim=0) #* attention map is combined to caculate the loss.
         loss = add_ca_loss_per_attn_map_to_loss(loss, attn_map, object_number, bboxes, object_positions, verbose=verbose, **kwargs)    
 
     num_attn = len(guidance_attn_keys)

@@ -1,3 +1,4 @@
+import pdb
 import torch
 import models
 import utils
@@ -277,12 +278,13 @@ def run(
         overall_prompt = overall_prompt_override.strip()
 
     overall_phrases, overall_words, overall_bboxes = (
-        [item[0] for item in overall_phrases_words_bboxes],
-        [item[1] for item in overall_phrases_words_bboxes],
-        [item[2] for item in overall_phrases_words_bboxes],
+        [item[0] for item in overall_phrases_words_bboxes], #* phrase level. ex) a bird nest
+        [item[1] for item in overall_phrases_words_bboxes], #* word level. ex) nest
+        [item[2] for item in overall_phrases_words_bboxes], #* bounding box. ex)(0.39, 0.29, 0.54, 0.39)
     )
 
     # The so box is centered but the overall boxes are not (since we need to place to the right place).
+    #todo# Ablation study with the so_center_box
     if so_center_box:
         so_prompt_phrase_word_box_list = [
             (
@@ -345,6 +347,8 @@ def run(
             )
         else:
             so_input_embeddings = []
+            print(so_input_embeddings)
+            pdb.set_trace()
 
         input_latents_list, latents_bg = latents.get_input_latents_list(
             model_dict,
