@@ -1,5 +1,6 @@
 import os
 import matplotlib.pyplot as plt
+from torchsummary import summary
 import pdb
 import torch
 from tqdm import tqdm
@@ -17,7 +18,8 @@ os.makedirs('attention_maps', exist_ok=True)
 
 # All keys: [('down', 0, 0, 0), ('down', 0, 1, 0), ('down', 1, 0, 0), ('down', 1, 1, 0), ('down', 2, 0, 0), ('down', 2, 1, 0), ('mid', 0, 0, 0), ('up', 1, 0, 0), ('up', 1, 1, 0), ('up', 1, 2, 0), ('up', 2, 0, 0), ('up', 2, 1, 0), ('up', 2, 2, 0), ('up', 3, 0, 0), ('up', 3, 1, 0), ('up', 3, 2, 0)]
 # Note that the first up block is `UpBlock2D` rather than `CrossAttnUpBlock2D` and does not have attention. The last index is always 0 in our case since we have one `BasicTransformerBlock` in each `Transformer2DModel`.
-DEFAULT_GUIDANCE_ATTN_KEYS = [("mid", 0, 0, 0), ("up", 1, 0, 0), ("up", 1, 1, 0), ("up", 1, 2, 0)]
+# DEFAULT_GUIDANCE_ATTN_KEYS = [("mid", 0, 0, 0), ("up", 1, 0, 0), ("up", 1, 1, 0), ("up", 1, 2, 0)]
+DEFAULT_GUIDANCE_ATTN_KEYS= [('down', 0, 0, 0), ('down', 0, 1, 0), ('down', 1, 0, 0), ('down', 1, 1, 0), ('down', 2, 0, 0), ('down', 2, 1, 0), ('mid', 0, 0, 0), ('up', 1, 0, 0), ('up', 1, 1, 0), ('up', 1, 2, 0), ('up', 2, 0, 0), ('up', 2, 1, 0), ('up', 2, 2, 0), ('up', 3, 0, 0), ('up', 3, 1, 0), ('up', 3, 2, 0)]
 
 def latent_backward_guidance(scheduler, unet, cond_embeddings, index, bboxes, object_positions, t, latents, loss, loss_scale = 30, loss_threshold = 0.2, max_iter = 5, max_index_step = 10, cross_attention_kwargs=None, ref_ca_saved_attns=None, guidance_attn_keys=None, verbose=False, clear_cache=False, **kwargs):
 
@@ -417,7 +419,7 @@ def generate_gligen(model_dict, latents, input_embeddings, num_inference_steps, 
     num_grounding_steps = int(gligen_scheduled_sampling_beta * len(timesteps))
     gligen_enable_fuser(unet, True)
 
-    for index, t in enumerate(tqdm(timesteps, disable=not show_progress)):
+    for index, t in enumerate(tqdm(timesteps, disable=not show_progress)): 
         # Scheduled sampling
         if index == num_grounding_steps:
             gligen_enable_fuser(unet, False)
@@ -428,14 +430,20 @@ def generate_gligen(model_dict, latents, input_embeddings, num_inference_steps, 
         # expand the latents if we are doing classifier-free guidance to avoid doing two forward passes.
         latent_model_input = torch.cat([latents] * 2)
 
-        pdb.set_trace()
+#! Debug
+
+        # pdb.set_trace()
 
         latent_model_input = scheduler.scale_model_input(latent_model_input, timestep=t)
         main_cross_attention_kwargs['save_attn_to_dict'] = {}
-        pdb.set_trace()
 
         print(main_cross_attention_kwargs['save_attn_to_dict'])
-        pdb.set_trace()
+
+        # pdb.set_trace()
+
+        # print(summary(unet, input_size=(3, 256, 256)))
+
+
         # predict the noise residual
         noise_pred = unet(latent_model_input, t, encoder_hidden_states=text_embeddings, 
                             cross_attention_kwargs=main_cross_attention_kwargs).sample
@@ -456,7 +464,10 @@ def generate_gligen(model_dict, latents, input_embeddings, num_inference_steps, 
             plt.close()
 
         
-        pdb.set_trace()
+        # pdb.set_trace()
+
+
+#! Debug
 
         if return_saved_cross_attn:
             saved_attns.append(main_cross_attention_kwargs['save_attn_to_dict'])
@@ -472,7 +483,23 @@ def generate_gligen(model_dict, latents, input_embeddings, num_inference_steps, 
 
         # compute the previous noisy sample x_t -> x_t-1
         latents = scheduler.step(noise_pred, t, latents).prev_sample
+#* added code 11/22
+
+        # Decode current latents to image
+        current_images = decode(vae, latents)
         
+        # Save each image in the batch
+        for b, img in enumerate(current_images):
+            # Create timestep directory if it doesn't exist
+            timestep_dir = os.path.join('intermediate_results', f'timestep_{index:04d}')
+            os.makedirs(timestep_dir, exist_ok=True)
+            
+            # Save the image
+            Image.fromarray(img).save(
+                os.path.join(timestep_dir, f'sample_{b:02d}.png')
+            )
+
+#* added code 11/22
         if frozen_mask is not None and index < frozen_steps:
             latents = latents_all_input[index+1] * frozen_mask + latents * (1. - frozen_mask)
         
@@ -486,10 +513,16 @@ def generate_gligen(model_dict, latents, input_embeddings, num_inference_steps, 
     if dynamic_num_inference_steps:
         # Restore num_inference_steps to avoid confusion in the next generation if it is not dynamic
         scheduler.num_inference_steps = original_num_inference_steps
+    
+    
+    pdb.set_trace()
 
+    
     # Turn off fuser for typical SD
     gligen_enable_fuser(unet, False)
     images = decode(vae, latents)
+
+    
     
     ret = [latents, images]
     if return_saved_cross_attn:
