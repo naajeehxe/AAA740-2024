@@ -6,6 +6,7 @@ import numpy as np
 import warnings
 import inflect
 import gradio as gr
+import pdb
 
 p = inflect.engine()
 # user_error = ValueError
@@ -358,7 +359,10 @@ def convert_spec(spec, height, width, include_counts=True, verbose=False):
             overall_prompt = objects_str
     else:
         overall_prompt = bg_prompt
-        
+
+
+    # pdb.set_trace()
+
     if verbose:
         print("so_prompt_phrase_word_box_list:", so_prompt_phrase_word_box_list)
         print("overall_prompt:", overall_prompt)

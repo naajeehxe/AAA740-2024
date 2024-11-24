@@ -131,9 +131,9 @@ def get_input_latents_list(model_dict, bg_seed, fg_seed_start, fg_blending_ratio
     if so_boxes is None:
         # For compatibility
         so_boxes = [item[-1] for item in so_prompt_phrase_box_list]
-    
+    #todo : foreground noise mask understanding 11/24
     # change this changes the foreground initial noise
-    for idx, obj_box in enumerate(so_boxes):
+    for idx, obj_box in enumerate(so_boxes): 
         H, W = height // 8, width // 8
         fg_mask = utils.proportion_to_mask(obj_box, H, W)
 

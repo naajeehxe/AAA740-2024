@@ -19,7 +19,7 @@ os.makedirs('attention_maps', exist_ok=True)
 # All keys: [('down', 0, 0, 0), ('down', 0, 1, 0), ('down', 1, 0, 0), ('down', 1, 1, 0), ('down', 2, 0, 0), ('down', 2, 1, 0), ('mid', 0, 0, 0), ('up', 1, 0, 0), ('up', 1, 1, 0), ('up', 1, 2, 0), ('up', 2, 0, 0), ('up', 2, 1, 0), ('up', 2, 2, 0), ('up', 3, 0, 0), ('up', 3, 1, 0), ('up', 3, 2, 0)]
 # Note that the first up block is `UpBlock2D` rather than `CrossAttnUpBlock2D` and does not have attention. The last index is always 0 in our case since we have one `BasicTransformerBlock` in each `Transformer2DModel`.
 # DEFAULT_GUIDANCE_ATTN_KEYS = [("mid", 0, 0, 0), ("up", 1, 0, 0), ("up", 1, 1, 0), ("up", 1, 2, 0)]
-DEFAULT_GUIDANCE_ATTN_KEYS= [('down', 0, 0, 0), ('down', 0, 1, 0),('up', 3, 0, 0), ('up', 3, 1, 0), ('up', 3, 2, 0)]
+DEFAULT_GUIDANCE_ATTN_KEYS= [('down', 0, 0, 0), ('down', 0, 1, 0), ('down', 1, 0, 0), ('down', 1, 1, 0), ('down', 2, 0, 0), ('down', 2, 1, 0), ('mid', 0, 0, 0), ('up', 1, 0, 0), ('up', 1, 1, 0), ('up', 1, 2, 0), ('up', 2, 0, 0), ('up', 2, 1, 0), ('up', 2, 2, 0), ('up', 3, 0, 0), ('up', 3, 1, 0), ('up', 3, 2, 0)]
 
 def latent_backward_guidance(scheduler, unet, cond_embeddings, index, bboxes, object_positions, t, latents, loss, loss_scale = 30, loss_threshold = 0.2, max_iter = 5, max_index_step = 10, cross_attention_kwargs=None, ref_ca_saved_attns=None, guidance_attn_keys=None, verbose=False, clear_cache=False, **kwargs):
 
@@ -291,13 +291,14 @@ def gligen_enable_fuser(unet, enabled=True):
             module.enabled = enabled
 
 def prepare_gligen_condition(bboxes, phrases, dtype, tokenizer, text_encoder, num_images_per_prompt):
-    batch_size = len(bboxes)
+    batch_size = len(bboxes) # box의 개수만큼 gligen Condition을 만든다.
     
-    assert len(phrases) == len(bboxes)
+    assert len(phrases) == len(bboxes) # phrases = "a waterfall"
     max_objs = 30
     
-    n_objs = min(max([len(bboxes_item) for bboxes_item in bboxes]), max_objs)
-    boxes = torch.zeros((batch_size, max_objs, 4), device=torch_device, dtype=dtype)
+    n_objs = min(max([len(bboxes_item) for bboxes_item in bboxes]), max_objs) 
+    
+    boxes = torch.zeros((batch_size, max_objs, 4), device=torch_device, dtype=dtype) # 
     phrase_embeddings = torch.zeros((batch_size, max_objs, 768), device=torch_device, dtype=dtype)
     # masks is a 1D tensor deciding which of the enteries to be enabled
     masks = torch.zeros((batch_size, max_objs), device=torch_device, dtype=dtype)
@@ -437,7 +438,7 @@ def generate_gligen(model_dict, latents, input_embeddings, num_inference_steps, 
         latent_model_input = scheduler.scale_model_input(latent_model_input, timestep=t)
         main_cross_attention_kwargs['save_attn_to_dict'] = {}
 
-        print(main_cross_attention_kwargs['save_attn_to_dict'])
+        # print(main_cross_attention_kwargs['save_attn_to_dict'])
 
         # pdb.set_trace()
 
@@ -447,27 +448,46 @@ def generate_gligen(model_dict, latents, input_embeddings, num_inference_steps, 
         # predict the noise residual
         noise_pred = unet(latent_model_input, t, encoder_hidden_states=text_embeddings, 
                             cross_attention_kwargs=main_cross_attention_kwargs).sample
-        print(f"{main_cross_attention_kwargs['save_attn_to_dict']}, keys:{list(main_cross_attention_kwargs['save_attn_to_dict'].keys())}")
+        # print(f"{main_cross_attention_kwargs['save_attn_to_dict']}, keys:{list(main_cross_attention_kwargs['save_attn_to_dict'].keys())}")
+
+
+        flatten_to_hw = {
+            4096: (64, 64),
+            1024: (32, 32),
+            256: (16, 16),
+            64: (8, 8)
+        }
 
         for i, key in enumerate(main_cross_attention_kwargs['save_attn_to_dict'].keys()):
             attn_map = main_cross_attention_kwargs['save_attn_to_dict'][key]
             print(f"shape : {attn_map.shape}")
-
+            
+            #1. Squeeze로 마지막 차원을 제거 (Shape: [1, 8, Flattened Sisze])
             attn_map= attn_map.squeeze(-1)
 
-            H, W = 64, 64
+            #2. Flatten 크기 확인 및, H, W을 복원
+            flattened_size = attn_map.shape[2]
+            if flattened_size not in flatten_to_hw:
+                print(f"Skipping key {key}: unsupported size {flattened_size}")
+                continue
+            H, W = flatten_to_hw[flattened_size]
+
+            #3. Reshape to [ Batch , Channel, H, W]
             attn_map = attn_map.view(1, 8 , H, W)
 
+            # 4. Single channel 및 Mean attention 계산
+            # GPU에서 CPU로 변환 후 NumPy 변환  
             single_channel_attention = attn_map[0, 0, :, :].cpu().detach().numpy()
             mean_attention = attn_map[0].mean(dim=0).cpu().detach().numpy()
 
+            # 5. 시각화
+            plt.figure(figsize=(10, 5))
 
             # Single channel
             plt.subplot(1, 2, 1)
             plt.title("Single Channel Attention")
             plt.imshow(single_channel_attention, cmap='viridis')
-            plt.colorbar()
-
+            
             # Mean Attention
             plt.subplot(1, 2, 2)
             plt.title("Mean Attention Across Channels")
@@ -479,7 +499,7 @@ def generate_gligen(model_dict, latents, input_embeddings, num_inference_steps, 
             plt.close()
 
         
-        pdb.set_trace()
+        # pdb.set_trace()
 
 
 #* --------- added code 11/22
@@ -508,12 +528,12 @@ def generate_gligen(model_dict, latents, input_embeddings, num_inference_steps, 
         # Save each image in the batch
         for b, img in enumerate(current_images):
             # Create timestep directory if it doesn't exist
-            timestep_dir = os.path.join('intermediate_results', f'timestep_{index:04d}')
+            timestep_dir = os.path.join('intermediate_results')
             os.makedirs(timestep_dir, exist_ok=True)
             
             # Save the image
             Image.fromarray(img).save(
-                os.path.join(timestep_dir, f'sample_{b:02d}.png')
+                os.path.join(timestep_dir, f'sample_{index:02d}.png')
             )
 
 #* ---------- added code 11/22
@@ -537,7 +557,10 @@ def generate_gligen(model_dict, latents, input_embeddings, num_inference_steps, 
 
     # Turn off fuser for typical SD
     gligen_enable_fuser(unet, False)
+    
+    # get the images.
     images = decode(vae, latents)
+    
 
     
     

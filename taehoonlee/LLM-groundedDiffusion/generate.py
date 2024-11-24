@@ -332,7 +332,7 @@ for regenerate_ind in range(args.regenerate):
                     ind_offset = repeat_ind * LARGE_CONSTANT3 + seed_offset
                     
                     #* model setting.
-                    
+                    pdb.set_trace()
                     if args.run_model in our_models:
                         # Our models load `extra_neg_prompt` from the spec
                         if args.no_synthetic_prompt:

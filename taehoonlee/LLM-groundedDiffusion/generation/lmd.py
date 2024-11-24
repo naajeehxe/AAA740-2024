@@ -301,6 +301,12 @@ def run(
         overall_phrases_words_bboxes,
     ) = parse.convert_spec(spec, height, width, verbose=verbose)
 
+
+    print( "After the convert of the spec",
+          so_prompt_phrase_word_box_list,
+          overall_prompt,
+          overall_phrases_words_bboxes)
+
     if overall_prompt_override and overall_prompt_override.strip():
         overall_prompt = overall_prompt_override.strip()
 

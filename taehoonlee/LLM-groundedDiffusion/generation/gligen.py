@@ -1,7 +1,7 @@
 
 version = "gligen"
 
-
+import pdb
 from PIL import Image
 import torch
 import models
@@ -47,7 +47,6 @@ def run(spec, gligen_scheduled_sampling_beta=0.4, bg_seed=1):
     align_with_overall_bboxes: Align the center of the mask, latents, and cross-attention with the center of the box in overall bboxes
     horizontal_shift_only: only shift horizontally for the alignment of mask, latents, and cross-attention
     """
-
     (
         so_prompt_phrase_word_box_list,
         prompt,
