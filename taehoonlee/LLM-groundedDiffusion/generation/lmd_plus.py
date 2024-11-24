@@ -348,7 +348,7 @@ def run(
         else:
             so_input_embeddings = []
             print(so_input_embeddings)
-            pdb.set_trace()
+            # pdb.set_trace()
 
         input_latents_list, latents_bg = latents.get_input_latents_list(
             model_dict,

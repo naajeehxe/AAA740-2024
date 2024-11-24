@@ -19,7 +19,7 @@ os.makedirs('attention_maps', exist_ok=True)
 # All keys: [('down', 0, 0, 0), ('down', 0, 1, 0), ('down', 1, 0, 0), ('down', 1, 1, 0), ('down', 2, 0, 0), ('down', 2, 1, 0), ('mid', 0, 0, 0), ('up', 1, 0, 0), ('up', 1, 1, 0), ('up', 1, 2, 0), ('up', 2, 0, 0), ('up', 2, 1, 0), ('up', 2, 2, 0), ('up', 3, 0, 0), ('up', 3, 1, 0), ('up', 3, 2, 0)]
 # Note that the first up block is `UpBlock2D` rather than `CrossAttnUpBlock2D` and does not have attention. The last index is always 0 in our case since we have one `BasicTransformerBlock` in each `Transformer2DModel`.
 # DEFAULT_GUIDANCE_ATTN_KEYS = [("mid", 0, 0, 0), ("up", 1, 0, 0), ("up", 1, 1, 0), ("up", 1, 2, 0)]
-DEFAULT_GUIDANCE_ATTN_KEYS= [('down', 0, 0, 0), ('down', 0, 1, 0), ('down', 1, 0, 0), ('down', 1, 1, 0), ('down', 2, 0, 0), ('down', 2, 1, 0), ('mid', 0, 0, 0), ('up', 1, 0, 0), ('up', 1, 1, 0), ('up', 1, 2, 0), ('up', 2, 0, 0), ('up', 2, 1, 0), ('up', 2, 2, 0), ('up', 3, 0, 0), ('up', 3, 1, 0), ('up', 3, 2, 0)]
+DEFAULT_GUIDANCE_ATTN_KEYS= [('down', 0, 0, 0), ('down', 0, 1, 0),('up', 3, 0, 0), ('up', 3, 1, 0), ('up', 3, 2, 0)]
 
 def latent_backward_guidance(scheduler, unet, cond_embeddings, index, bboxes, object_positions, t, latents, loss, loss_scale = 30, loss_threshold = 0.2, max_iter = 5, max_index_step = 10, cross_attention_kwargs=None, ref_ca_saved_attns=None, guidance_attn_keys=None, verbose=False, clear_cache=False, **kwargs):
 
@@ -430,7 +430,7 @@ def generate_gligen(model_dict, latents, input_embeddings, num_inference_steps, 
         # expand the latents if we are doing classifier-free guidance to avoid doing two forward passes.
         latent_model_input = torch.cat([latents] * 2)
 
-#! Debug
+#* ---------- added code 11/22
 
         # pdb.set_trace()
 
@@ -453,10 +453,25 @@ def generate_gligen(model_dict, latents, input_embeddings, num_inference_steps, 
             attn_map = main_cross_attention_kwargs['save_attn_to_dict'][key]
             print(f"shape : {attn_map.shape}")
 
-            # Visualize and save the attention map
-            plt.figure(figsize=(10, 10))
-            plt.imshow(attn_map[0].cpu().detach().numpy(), cmap='viridis')
-            plt.title(f"Attention Map for Key: {key}")
+            attn_map= attn_map.squeeze(-1)
+
+            H, W = 64, 64
+            attn_map = attn_map.view(1, 8 , H, W)
+
+            single_channel_attention = attn_map[0, 0, :, :].cpu().detach().numpy()
+            mean_attention = attn_map[0].mean(dim=0).cpu().detach().numpy()
+
+
+            # Single channel
+            plt.subplot(1, 2, 1)
+            plt.title("Single Channel Attention")
+            plt.imshow(single_channel_attention, cmap='viridis')
+            plt.colorbar()
+
+            # Mean Attention
+            plt.subplot(1, 2, 2)
+            plt.title("Mean Attention Across Channels")
+            plt.imshow(mean_attention, cmap='viridis')
             plt.colorbar()
 
             # Save the figure
@@ -464,10 +479,10 @@ def generate_gligen(model_dict, latents, input_embeddings, num_inference_steps, 
             plt.close()
 
         
-        # pdb.set_trace()
+        pdb.set_trace()
 
 
-#! Debug
+#* --------- added code 11/22
 
         if return_saved_cross_attn:
             saved_attns.append(main_cross_attention_kwargs['save_attn_to_dict'])
@@ -483,7 +498,9 @@ def generate_gligen(model_dict, latents, input_embeddings, num_inference_steps, 
 
         # compute the previous noisy sample x_t -> x_t-1
         latents = scheduler.step(noise_pred, t, latents).prev_sample
-#* added code 11/22
+
+
+#* added code 11/22 --------
 
         # Decode current latents to image
         current_images = decode(vae, latents)
@@ -499,7 +516,7 @@ def generate_gligen(model_dict, latents, input_embeddings, num_inference_steps, 
                 os.path.join(timestep_dir, f'sample_{b:02d}.png')
             )
 
-#* added code 11/22
+#* ---------- added code 11/22
         if frozen_mask is not None and index < frozen_steps:
             latents = latents_all_input[index+1] * frozen_mask + latents * (1. - frozen_mask)
         
@@ -515,9 +532,9 @@ def generate_gligen(model_dict, latents, input_embeddings, num_inference_steps, 
         scheduler.num_inference_steps = original_num_inference_steps
     
     
-    pdb.set_trace()
+    # pdb.set_trace()
 
-    
+
     # Turn off fuser for typical SD
     gligen_enable_fuser(unet, False)
     images = decode(vae, latents)
