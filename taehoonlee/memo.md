@@ -33,5 +33,7 @@ Spec을 converting 한 후에는 다음과 같이 주어진다.
 
 *latents.get_input_latents_list* 로 들어감
 
+latent 처리 후 
 
+lmd_plus.py 의 get_masked_latents_all_list로 들어감.
 

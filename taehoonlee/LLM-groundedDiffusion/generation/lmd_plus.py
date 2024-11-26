@@ -61,6 +61,8 @@ def generate_single_object_with_box(
 ):
     bboxes, phrases, words = [box], [phrase], [word]
 
+
+
     if verbose:
         print(f"Getting token map (prompt: {prompt})")
 
@@ -149,7 +151,7 @@ def generate_single_object_with_box(
 def get_masked_latents_all_list(
     so_prompt_phrase_word_box_list,
     input_latents_list,
-    so_input_embeddings,
+    so_input_embeddings, # text embeddings
     verbose=False,
     **kwargs,
 ):
@@ -158,24 +160,24 @@ def get_masked_latents_all_list(
     if not so_prompt_phrase_word_box_list:
         return latents_all_list, mask_tensor_list, saved_attns_list, so_img_list
 
-    so_uncond_embeddings, so_cond_embeddings = so_input_embeddings
+    so_uncond_embeddings, so_cond_embeddings = so_input_embeddings # text embeddings
 
     for idx, ((prompt, phrase, word, box), input_latents) in enumerate(
-        zip(so_prompt_phrase_word_box_list, input_latents_list)
-    ):
-        so_current_cond_embeddings = so_cond_embeddings[idx : idx + 1]
-        so_current_text_embeddings = torch.cat(
+        zip(so_prompt_phrase_word_box_list, input_latents_list) # 모든 object에 대해 반복
+    ): 
+        so_current_cond_embeddings = so_cond_embeddings[idx : idx + 1] # slicing for maintaining the dim
+        so_current_text_embeddings = torch.cat( # find out current text embeddings.
             [so_uncond_embeddings, so_current_cond_embeddings], dim=0
         )
         so_current_input_embeddings = (
             so_current_text_embeddings,
             so_uncond_embeddings,
             so_current_cond_embeddings,
-        )
+        ) # text embeddings
 
         latents_all, mask_tensor, saved_attns, so_img = generate_single_object_with_box(
             prompt,
-            box,
+            box, 
             phrase,
             word,
             input_latents,
@@ -183,6 +185,8 @@ def get_masked_latents_all_list(
             verbose=verbose,
             **kwargs,
         )
+
+
         latents_all_list.append(latents_all)
         mask_tensor_list.append(mask_tensor)
         saved_attns_list.append(saved_attns)
@@ -357,15 +361,19 @@ def run(
             print(so_input_embeddings)
             # pdb.set_trace()
 
+#* go to the latents.py
+
+        pdb.set_trace()
         input_latents_list, latents_bg = latents.get_input_latents_list(
             model_dict,
             bg_seed=bg_seed,
             fg_seed_start=fg_seed_start,
             so_boxes=so_boxes,
             fg_blending_ratio=fg_blending_ratio,
-            height=height,
-            width=width,
-            verbose=False,
+            height=height, # 512
+            width=width, # 512
+            verbose=True, #! changed. just for debugging
+            so_prompt_phrase_box_list=so_prompt_phrase_word_box_list #! changed. just for debugging
         )
 
         if use_fast_schedule:
@@ -376,7 +384,8 @@ def run(
             )
         else:
             fast_after_steps = None
-
+        
+        #* frozen step set 0.5 *#
         if use_ref_ca or frozen_steps > 0:
             (
                 latents_all_list,

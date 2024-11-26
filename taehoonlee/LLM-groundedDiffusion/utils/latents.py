@@ -1,4 +1,6 @@
 import torch
+import pdb
+import os
 import numpy as np
 from . import utils
 from utils import torch_device
@@ -130,16 +132,24 @@ def get_input_latents_list(model_dict, bg_seed, fg_seed_start, fg_blending_ratio
     
     if so_boxes is None:
         # For compatibility
-        so_boxes = [item[-1] for item in so_prompt_phrase_box_list]
-    #todo : foreground noise mask understanding 11/24
+        so_boxes = [item[-1] for item in so_prompt_phrase_box_list] # (0.3945, 0.3945, 0.6055, 0.6055).. bounding box of the object
+    pdb.set_trace()
+    print(so_prompt_phrase_box_list)
+    objects = [item[-2] for item in so_prompt_phrase_box_list]
+    print(objects)
+    print(zip(so_boxes, objects))
     # change this changes the foreground initial noise
-    for idx, obj_box in enumerate(so_boxes): 
-        H, W = height // 8, width // 8
-        fg_mask = utils.proportion_to_mask(obj_box, H, W)
-
+    for idx, (obj_box, obj) in enumerate(zip(so_boxes, objects)):
+        H, W = height // 8, width // 8 
+        fg_mask = utils.proportion_to_mask(obj_box, H, W) # latent 크기에 맞게 mask 비율 조정.
         if verbose:
-            plt.imshow(fg_mask.cpu().numpy())
-            plt.show()
+            mask = fg_mask.cpu().numpy()
+            output_dir = "masks"
+            os.makedirs(output_dir, exist_ok=True)
+            plt.imsave(os.path.join(output_dir, f"fg_mask_{obj}_{idx}.png"), mask)
+            
+            # plt.imshow(fg_mask.cpu().numpy())
+            # plt.show()
         
         fg_seed = fg_seed_start + idx
         if fg_seed == bg_seed:
@@ -148,11 +158,11 @@ def get_input_latents_list(model_dict, bg_seed, fg_seed_start, fg_blending_ratio
         
         generator_fg = torch.manual_seed(fg_seed)
         latents_fg = get_unscaled_latents(batch_size=1, in_channels=unet.config.in_channels, height=height, width=width, generator=generator_fg, dtype=dtype)
-    
-        input_latents = blend_latents(latents_bg, latents_fg, fg_mask, fg_blending_ratio=fg_blending_ratio)
-    
+        
+        input_latents = blend_latents(latents_bg, latents_fg, fg_mask, fg_blending_ratio=fg_blending_ratio) # mix latents_bg and latents_fg
+        # blending latents.
         input_latents = input_latents * scheduler.init_noise_sigma
-    
+        
         input_latents_list.append(input_latents)
     
     latents_bg = latents_bg * scheduler.init_noise_sigma
