@@ -405,7 +405,14 @@ def run(
                 fast_after_steps=fast_after_steps,
                 fast_rate=2,
                 verbose=verbose,
-            )
+            ) # per box masekd latent generation.
+            """
+            latents_all_list: 모든 latent list.
+            mask_tensor_list: list of mask_tensor
+            saved_attns_list: list of saved_attns
+            so_img_list: 하나의 오브젝트에 대한 이미지 생성 결과.
+            논문에서 step 1: per box masked latent generation에 해당하는 부분.
+            """
         else:
             # No per-box guidance
             (latents_all_list, mask_tensor_list, saved_attns_list, so_img_list) = (
@@ -415,11 +422,14 @@ def run(
                 [],
             )
 
+#* step 2 : overall generation with masked latents as priors.
+# 한 프롬프트 내에서 일어나는 일이다.
+
         (
-            composed_latents,
+            composed_latents, # 두 latent를 조합해서 만든다.
             foreground_indices,
             offset_list,
-        ) = latents.compose_latents_with_alignment(
+        ) = latents.compose_latents_with_alignment( # latent shift.
             model_dict,
             latents_all_list,
             mask_tensor_list,
@@ -449,8 +459,9 @@ def run(
             return_word_token_indices=True,
             add_suffix_if_not_found=True,
         )
+        
 
-        overall_input_embeddings = models.encode_prompts(
+        overall_input_embeddings = models.encode_prompts( # text inputs.
             prompts=[overall_prompt],
             tokenizer=tokenizer,
             negative_prompt=overall_negative_prompt,
@@ -461,22 +472,24 @@ def run(
             # ref_ca_saved_attns has the same hierarchy as bboxes
             ref_ca_saved_attns = []
 
+#* for better alignmet, we shift the attention. and then apply it to the overall generation.
+
             flattened_box_idx = 0
             for bboxes in overall_bboxes:
                 # bboxes: correspond to a phrase
                 ref_ca_current_phrase_saved_attns = []
                 for bbox in bboxes:
                     # each individual bbox
-                    saved_attns = saved_attns_list[flattened_box_idx]
+                    saved_attns = saved_attns_list[flattened_box_idx] # get the attention.
                     if align_with_overall_bboxes:
-                        offset = offset_list[flattened_box_idx]
-                        saved_attns = attn.shift_saved_attns(
+                        offset = offset_list[flattened_box_idx] # get the offset.
+                        saved_attns = attn.shift_saved_attns( #* shift the attention.
                             saved_attns,
                             offset,
                             guidance_attn_keys=guidance_attn_keys,
                             horizontal_shift_only=horizontal_shift_only,
                         )
-                    ref_ca_current_phrase_saved_attns.append(saved_attns)
+                    ref_ca_current_phrase_saved_attns.append(saved_attns) 
                     flattened_box_idx += 1
                 ref_ca_saved_attns.append(ref_ca_current_phrase_saved_attns)
 
@@ -512,6 +525,10 @@ def run(
 
         # Foreground should be frozen
         frozen_mask = foreground_indices != 0
+
+        
+#* compose 된 latent와 shift 된 attention을 이용하여 overall generation을 수행한다.
+
 
         _, images = pipelines.generate_gligen(
             model_dict,

@@ -140,7 +140,7 @@ def expand_overall_bboxes(overall_bboxes):
     Input: [[box 1 for phrase 1, box 2 for phrase 1], ...]
     Output: [box 1, box 2, ...]
     """
-    return sum(overall_bboxes, start=[])
+    return sum(overall_bboxes, start=[]) # list 안에 요소를 더해서 평탄화.
 
 def shift_tensor(tensor, x_offset, y_offset, base_w=8, base_h=8, offset_normalized=False, ignore_last_dim=False):
     """base_w and base_h: make sure the shift is aligned in the latent and multiple levels of cross attention"""

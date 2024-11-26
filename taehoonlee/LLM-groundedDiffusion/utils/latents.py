@@ -91,8 +91,13 @@ def align_with_bboxes(latents_all_list, mask_tensor_list, bboxes, horizontal_shi
     new_latents_all_list, new_mask_tensor_list, offset_list = [], [], []
     for latents_all, mask_tensor, bbox in zip(latents_all_list, mask_tensor_list, bboxes):
         x_src_center, y_src_center = utils.binary_mask_to_center(mask_tensor, normalize=True)
+        
+        # 처음 주어진 mask_tensor 자체의 center를 구함.
         x_min_dest, y_min_dest, x_max_dest, y_max_dest = bbox
+
+        # LLM이 뱉은, 이동해야할 bbox의 center를 구함.
         x_dest_center, y_dest_center = (x_min_dest + x_max_dest) / 2, (y_min_dest + y_max_dest) / 2
+        
         # print("src (x,y):", x_src_center, y_src_center, "dest (x,y):", x_dest_center, y_dest_center)
         x_offset, y_offset = x_dest_center - x_src_center, y_dest_center - y_src_center
         if horizontal_shift_only:
