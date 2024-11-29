@@ -44,11 +44,11 @@ class GatedSelfAttentionDense(nn.Module):
         if not self.enabled:
             return x
 
-        n_visual = x.shape[1]
-        objs = self.linear(objs)
+        n_visual = x.shape[1] #* 기존 visual token.
+        objs = self.linear(objs) #* obj token.
 
-        x = x + self.alpha_attn.tanh() * self.attn(self.norm1(torch.cat([x, objs], dim=1)), **fuser_attn_kwargs)[:, :n_visual, :]
-        x = x + self.alpha_dense.tanh() * self.ff(self.norm2(x))  
+        x = x + self.alpha_attn.tanh() * self.attn(self.norm1(torch.cat([x, objs], dim=1)), **fuser_attn_kwargs)[:, :n_visual, :] # n_visual_token (Token Selection)
+        x = x + self.alpha_dense.tanh() * self.ff(self.norm2(x))
 
         return x
 

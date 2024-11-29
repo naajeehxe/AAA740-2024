@@ -26,6 +26,7 @@ if __name__ == "__main__":
     parser.add_argument("--always-save", action='store_true', help='Always save the layout without confirming')
     parser.add_argument("--no-visualize", action='store_true', help='No visualizations')
     parser.add_argument("--visualize-cache-hit", action='store_true', help='Save boxes for cache hit')
+    parser.add_argument("--experiment", type=bool, default=False, help='Experiment mode')
     args = parser.parse_args()
     
     visualize_cache_hit = args.visualize_cache_hit
@@ -41,10 +42,14 @@ if __name__ == "__main__":
     if not args.no_visualize:
         os.makedirs(parse.img_dir, exist_ok=True)
 
-    cache.cache_path = f'cache/cache_{args.prompt_type.replace("lmd_", "")}{"_" + template_version if args.template_version != "v5" else ""}_{model}.json'
-    print(f"Cache: {cache.cache_path}")
-    os.makedirs(os.path.dirname(cache.cache_path), exist_ok=True)
-    cache.cache_format = "json"
+    if args.experiment: # if experiment do the following.
+        cache.cache_path = f'cache/experiment/cache_{args.prompt_type.replace("lmd_", "")}{"_" + template_version if args.template_version != "v5" else ""}_{model}.json'
+    else:
+        cache.cache_path = f'cache/cache_{args.prompt_type.replace("lmd_", "")}{"_" + template_version if args.template_version != "v5" else ""}_{model}.json'
+    
+    print(f"Cache: {cache.cache_path}") # print cache
+    os.makedirs(os.path.dirname(cache.cache_path), exist_ok=True) # make cache directory.
+    cache.cache_format = "json" # format is json.
 
     cache.init_cache()
 
@@ -52,7 +57,7 @@ if __name__ == "__main__":
 
     ## prompts_query는 list 순회.
     
-    for ind, prompt in enumerate(prompts_query):
+    for ind, prompt in enumerate(prompts_query): # 각 query에 대해 순회.
 
         # enumerate 해주기 때문에 실시하면..
 
@@ -63,8 +68,8 @@ if __name__ == "__main__":
         
         response = cache.get_cache(prompt)
 
-        if response is None:
-            print(f"Cache miss: {prompt}")
+        if response is None: # 대당하는 prompt query에 대한 response가 없다면.
+            print(f"Cache miss: {prompt}") 
             
             if not args.auto_query:
                 print("#########")
@@ -72,24 +77,6 @@ if __name__ == "__main__":
                 print(prompt_full, end="")
                 print("#########")
                 resp = None
-
-            # ## Stable Beluga 추가.
-            #     if args.model == "StableBeluga2"
-            #     print("### Sable_Beluga 2 pipeline 시작 ###")
-
-            #     # stable beluga model
-            #     tokenizer = stablebeluga2.tokenizer
-            #     model = stablebeluga2.model
-
-            #     # 1. get the full prompt (input)
-            #     prompt_full = get_full_prompt(template=template , prompt=prompt)
-
-            #     # 2. do the model inference
-            #     inputs = tokenizer(prompt_full, return_tensors="pt").to("cuda")
-            #     output = model.generate(**inputs, do_sample=True)
-
-            #     # 3. write output to the cache folder.
-                
                         
             attempts = 0
             while True:
@@ -100,6 +87,10 @@ if __name__ == "__main__":
                 
                 try:
                     parsed_input = parse_input_with_negative(text=resp, no_input=args.auto_query)
+                    """ 
+                    parse_input_with_negative(text=resp, no_input=args.auto_query) 현재 response가 none이기 때문에 
+                    gpt4가 생성한 response를 input으로 넣어주어야 한다.
+                    """
                     if parsed_input is None:
                         raise ValueError("Invalid input")
                     raw_gen_boxes, bg_prompt, neg_prompt = parsed_input
