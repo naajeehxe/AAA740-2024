@@ -57,7 +57,7 @@ def compose_latents(model_dict, latents_all_list, mask_tensor_list, num_inferenc
     
     mask_size = np.array([mask_tensor.sum().item() for mask_tensor in mask_tensor_list])
     # Compose the largest mask first
-    mask_order = np.argsort(-mask_size)
+    mask_order = np.argsort(-mask_size) # 작은 것부터 큰 것 순서대로 정렬한 Index를 반환. - 붙였으니까 큰것부터..
     
     if compose_box_to_bg:
         # This has two functionalities: 
@@ -68,7 +68,7 @@ def compose_latents(model_dict, latents_all_list, mask_tensor_list, num_inferenc
             # Note: need to be careful to not copy from zeros due to shifting. 
             mask_tensor = utils.binary_mask_to_box_mask(mask_tensor, to_device=False)
 
-            mask_tensor_expanded = mask_tensor[None, None, None, ...].to(dtype)
+            mask_tensor_expanded = mask_tensor[None, None, None, ...].to(dtype) # (1, 1, 1, H, W)
             composed_latents[0] = composed_latents[0] * (1. - mask_tensor_expanded) + latents_all[0] * mask_tensor_expanded
     
     # This is still needed with `compose_box_to_bg` to ensure the foreground latent is still visible and to compute foreground indices.
