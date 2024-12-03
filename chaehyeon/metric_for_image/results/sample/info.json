@@ -1,0 +1,77 @@
+{
+    "/home/chaehyeon/code_answer_with_images/metric_for_image/results/sample/img_gen/001.png" :
+    {
+        "bbox_list" : [[202, 120, 110, 110], [202, 230, 110, 110], [62, 190, 80, 150]],
+        "category_list" : ["cube", "cube", "vase"]
+	},
+    "/home/chaehyeon/code_answer_with_images/metric_for_image/results/sample/img_gen/002.png" :
+    {
+        "bbox_list" : [[202, 120, 110, 110], [202, 230, 110, 110], [62, 190, 80, 150]],
+        "category_list" : ["cube", "cube", "vase"]
+    },
+    "/home/chaehyeon/code_answer_with_images/metric_for_image/results/sample/img_gen/003.png" :
+    {
+        "bbox_list" : [[202, 120, 110, 110], [202, 230, 110, 110], [62, 190, 80, 150]],
+        "category_list" : ["cube", "cube", "vase"]
+    },
+    "/home/chaehyeon/code_answer_with_images/metric_for_image/results/sample/img_gen/004.png" :
+    {
+        "bbox_list" : [[202, 120, 110, 110], [202, 230, 110, 110], [62, 190, 80, 150]],
+        "category_list" : ["cube", "cube", "vase"]
+    },
+    "/home/chaehyeon/code_answer_with_images/metric_for_image/results/sample/img_gen/005.png" :
+    {
+        "bbox_list" : [[202, 120, 110, 110], [202, 230, 110, 110], [62, 190, 80, 150]],
+        "category_list" : ["cube", "cube", "vase"]
+    },
+    "/home/chaehyeon/code_answer_with_images/metric_for_image/results/sample/img_gen/006.png" :
+    {
+        "bbox_list" : [[65, 243, 344, 206]],
+        "category_list" : ["table"]
+    },
+    "/home/chaehyeon/code_answer_with_images/metric_for_image/results/sample/img_gen/007.png" :
+    {
+        "bbox_list" : [[65, 243, 344, 206]],
+        "category_list" : ["table"]
+    },
+    "/home/chaehyeon/code_answer_with_images/metric_for_image/results/sample/img_gen/008.png" :
+    {
+        "bbox_list" : [[65, 243, 344, 206]],
+        "category_list" : ["table"]
+    },
+    "/home/chaehyeon/code_answer_with_images/metric_for_image/results/sample/img_gen/009.png" :
+    {
+        "bbox_list" : [[65, 243, 344, 206]],
+        "category_list" : ["table"]
+    },
+    "/home/chaehyeon/code_answer_with_images/metric_for_image/results/sample/img_gen/010.png" :
+    {
+        "bbox_list" : [[65, 243, 344, 206]],
+        "category_list" : ["table"]
+    },
+    "/home/chaehyeon/code_answer_with_images/metric_for_image/results/sample/img_gen/011.png" :
+    {
+        "bbox_list" : [[74, 177, 183, 235], [314, 193, 189, 216]],
+        "category_list" : ["deer", "bear"]
+    },
+    "/home/chaehyeon/code_answer_with_images/metric_for_image/results/sample/img_gen/012.png" :
+    {
+        "bbox_list" : [[74, 177, 183, 235], [314, 193, 189, 216]],
+        "category_list" : ["deer", "bear"]
+    },
+    "/home/chaehyeon/code_answer_with_images/metric_for_image/results/sample/img_gen/013.png" :
+    {
+        "bbox_list" : [[74, 177, 183, 235], [314, 193, 189, 216]],
+        "category_list" : ["deer", "bear"]
+    },
+    "/home/chaehyeon/code_answer_with_images/metric_for_image/results/sample/img_gen/014.png" :
+    {
+        "bbox_list" : [[74, 177, 183, 235], [314, 193, 189, 216]],
+        "category_list" : ["deer", "bear"]
+    },
+    "/home/chaehyeon/code_answer_with_images/metric_for_image/results/sample/img_gen/015.png" :
+    {
+        "bbox_list" : [[74, 177, 183, 235], [314, 193, 189, 216]],
+        "category_list" : ["deer", "bear"]
+    }
+}

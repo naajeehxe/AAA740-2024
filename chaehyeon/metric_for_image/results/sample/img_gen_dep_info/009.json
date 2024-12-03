@@ -1,0 +1,16 @@
+{
+    "table": {
+        "original_depth": 63.49792560397381,
+        "original_bbox": [
+            65,
+            243,
+            344,
+            206
+        ],
+        "revised_bbox": [
+            3.244200468607248,
+            5.417499811654822
+        ],
+        "revised_bbox_area": 1.0
+    }
+}
