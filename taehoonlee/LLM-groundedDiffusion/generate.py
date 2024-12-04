@@ -51,6 +51,7 @@ parser.add_argument("--dry-run", action="store_true", help="skip the generation"
 
 parser.add_argument("--sdxl", action="store_true", help="Enable sdxl.")
 parser.add_argument("--sdxl-step-ratio", type=float, default=0.3, help="SDXL step ratio: the higher the stronger the refinement.")
+parser.add_argument("--experiment", type=bool, default=False, help='Experiment mode')
 
 float_args = [
     "frozen_step_ratio",
@@ -175,7 +176,12 @@ template_version = args.template_version
 model = get_full_model_name(model=args.model)
 
 cache.cache_format = "json"
-cache.cache_path = f'cache/cache_{args.prompt_type.replace("lmd_", "")}{"_" + template_version if template_version != "v5" else ""}_{model}.json'
+
+if args.experiment:
+    cache.cache_path = f'cache/experiment/cache_{args.prompt_type.replace("lmd_", "")}{"_" + template_version if template_version != "v5" else ""}_{model}.json'
+else:
+    cache.cache_path = f'cache/cache_{args.prompt_type.replace("lmd_", "")}{"_" + template_version if template_version != "v5" else ""}_{model}.json'
+
 # Cache path
 print(f"Loading LLM responses from cache {cache.cache_path}") # cache path.
 cache.init_cache(allow_nonexist=False) # global cache.
@@ -332,7 +338,7 @@ for regenerate_ind in range(args.regenerate):
                     ind_offset = repeat_ind * LARGE_CONSTANT3 + seed_offset
                     
                     #* model setting.
-                    pdb.set_trace()
+                    # pdb.set_trace()
                     if args.run_model in our_models:
                         # Our models load `extra_neg_prompt` from the spec
                         if args.no_synthetic_prompt:

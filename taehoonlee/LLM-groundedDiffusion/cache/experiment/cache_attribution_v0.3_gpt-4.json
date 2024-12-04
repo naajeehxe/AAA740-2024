@@ -1,0 +1,5 @@
+{
+    "A realistic photo of a scene with a blue dog and a white bowl": [
+        "[('a blue dog', [48, 98, 260, 220]), ('a white bowl', [350, 310, 100, 80])]\nBackground prompt: A realistic photo of a scene\nNegative prompt: "
+    ]
+}

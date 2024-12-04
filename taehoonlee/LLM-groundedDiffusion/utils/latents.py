@@ -138,7 +138,7 @@ def get_input_latents_list(model_dict, bg_seed, fg_seed_start, fg_blending_ratio
     if so_boxes is None:
         # For compatibility
         so_boxes = [item[-1] for item in so_prompt_phrase_box_list] # (0.3945, 0.3945, 0.6055, 0.6055).. bounding box of the object
-    pdb.set_trace()
+    # pdb.set_trace()
     print(so_prompt_phrase_box_list)
     objects = [item[-2] for item in so_prompt_phrase_box_list]
     print(objects)

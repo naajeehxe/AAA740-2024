@@ -457,46 +457,48 @@ def generate_gligen(model_dict, latents, input_embeddings, num_inference_steps, 
             256: (16, 16),
             64: (8, 8)
         }
+        
+#! SAVE ATTENTION PART
 
-        for i, key in enumerate(main_cross_attention_kwargs['save_attn_to_dict'].keys()):
-            attn_map = main_cross_attention_kwargs['save_attn_to_dict'][key]
-            print(f"shape : {attn_map.shape}")
+        # for i, key in enumerate(main_cross_attention_kwargs['save_attn_to_dict'].keys()):
+        #     attn_map = main_cross_attention_kwargs['save_attn_to_dict'][key]
+        #     print(f"shape : {attn_map.shape}")
             
-            #1. Squeeze로 마지막 차원을 제거 (Shape: [1, 8, Flattened Sisze])
-            attn_map= attn_map.squeeze(-1)
+        #     #1. Squeeze로 마지막 차원을 제거 (Shape: [1, 8, Flattened Sisze])
+        #     attn_map= attn_map.squeeze(-1)
 
-            #2. Flatten 크기 확인 및, H, W을 복원
-            flattened_size = attn_map.shape[2]
-            if flattened_size not in flatten_to_hw:
-                print(f"Skipping key {key}: unsupported size {flattened_size}")
-                continue
-            H, W = flatten_to_hw[flattened_size]
+        #     #2. Flatten 크기 확인 및, H, W을 복원
+        #     flattened_size = attn_map.shape[2]
+        #     if flattened_size not in flatten_to_hw:
+        #         print(f"Skipping key {key}: unsupported size {flattened_size}")
+        #         continue
+        #     H, W = flatten_to_hw[flattened_size]
 
-            #3. Reshape to [ Batch , Channel, H, W]
-            attn_map = attn_map.view(1, 8 , H, W)
+        #     #3. Reshape to [ Batch , Channel, H, W]
+        #     attn_map = attn_map.view(1, 8 , H, W)
 
-            # 4. Single channel 및 Mean attention 계산
-            # GPU에서 CPU로 변환 후 NumPy 변환  
-            single_channel_attention = attn_map[0, 0, :, :].cpu().detach().numpy()
-            mean_attention = attn_map[0].mean(dim=0).cpu().detach().numpy()
+        #     # 4. Single channel 및 Mean attention 계산
+        #     # GPU에서 CPU로 변환 후 NumPy 변환  
+        #     single_channel_attention = attn_map[0, 0, :, :].cpu().detach().numpy()
+        #     mean_attention = attn_map[0].mean(dim=0).cpu().detach().numpy()
 
-            # 5. 시각화
-            plt.figure(figsize=(10, 5))
+        #     # 5. 시각화
+        #     plt.figure(figsize=(10, 5))
 
-            # Single channel
-            plt.subplot(1, 2, 1)
-            plt.title("Single Channel Attention")
-            plt.imshow(single_channel_attention, cmap='viridis')
+        #     # Single channel
+        #     plt.subplot(1, 2, 1)
+        #     plt.title("Single Channel Attention")
+        #     plt.imshow(single_channel_attention, cmap='viridis')
             
-            # Mean Attention
-            plt.subplot(1, 2, 2)
-            plt.title("Mean Attention Across Channels")
-            plt.imshow(mean_attention, cmap='viridis')
-            plt.colorbar()
+        #     # Mean Attention
+        #     plt.subplot(1, 2, 2)
+        #     plt.title("Mean Attention Across Channels")
+        #     plt.imshow(mean_attention, cmap='viridis')
+        #     plt.colorbar()
 
-            # Save the figure
-            plt.savefig(f'attention_maps/attention_map_{key}.png')
-            plt.close()
+        #     # Save the figure
+        #     plt.savefig(f'attention_maps/attention_map_{key}.png')
+        #     plt.close()
 
         
         # pdb.set_trace()
@@ -525,16 +527,16 @@ def generate_gligen(model_dict, latents, input_embeddings, num_inference_steps, 
         # Decode current latents to image
         current_images = decode(vae, latents)
         
-        # Save each image in the batch
-        for b, img in enumerate(current_images):
-            # Create timestep directory if it doesn't exist
-            timestep_dir = os.path.join('intermediate_results')
-            os.makedirs(timestep_dir, exist_ok=True)
+        # # Save each image in the batch
+        # for b, img in enumerate(current_images):
+        #     # Create timestep directory if it doesn't exist
+        #     timestep_dir = os.path.join('intermediate_results')
+        #     os.makedirs(timestep_dir, exist_ok=True)
             
-            # Save the image
-            Image.fromarray(img).save(
-                os.path.join(timestep_dir, f'sample_{index:02d}.png')
-            )
+        #     # Save the image
+        #     Image.fromarray(img).save(
+        #         os.path.join(timestep_dir, f'sample_{index:02d}.png')
+        #     )
 
 #* ---------- added code 11/22
         if frozen_mask is not None and index < frozen_steps:
