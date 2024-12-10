@@ -69,7 +69,7 @@
         "[('a yellow car', [50, 250, 220, 150]), ('an orange chair', [300, 200, 150, 200])]\nBackground prompt: A realistic photo of a scene\nNegative prompt: "
     ],
     "A realistic photo of a scene with a purple backpack and a brown cup": [
-        "[]\nBackground prompt: [('a purple backpack', [100, 200, 150, 200]), ('a brown cup', [300, 320, 80, 100])]A realistic photo of a scene\nNegative prompt: "
+        "[('a purple backpack', [100, 200, 150, 200]), ('a brown cup', [300, 320, 80, 100])]\nBackground prompt: A realistic photo of a scene\nNegative prompt: "
     ],
     "A realistic photo of a scene with a gray dog and a blue backpack": [
         "[('a gray dog', [50, 200, 200, 250]), ('a blue backpack', [300, 250, 120, 160])]\nBackground prompt: A realistic photo of a scene\nNegative prompt: "
@@ -108,43 +108,43 @@
         "[('a purple bottle', [50, 320, 80, 160]), ('a yellow cat', [300, 200, 150, 200])]\nBackground prompt: A realistic photo of a scene\nNegative prompt: "
     ],
     "A realistic photo of a scene with a red dog and a gray laptop": [
-        "[]\nBackground prompt: A realistic landscape scene\nNegative prompt: "
+        "[('a red dog', [50, 220, 150, 100]), ('a gray laptop', [220, 200, 180, 120])]\nBackground prompt: A realistic indoor scene\nNegative prompt:birds "
     ],
     "A realistic photo of a scene with a brown laptop and a blue cat": [
-        "[]\nBackground prompt: Caption: A realistic top-down view of a wooden table with two apples on it\nNegative prompt: Objects: [('a wooden table', [20, 148, 472, 216]), ('an apple', [150, 226, 100, 100]), ('an apple', [280, 226, 100, 100])]"
+        "[('a brown laptop', [100, 220, 200, 120]), ('a blue cat', [250, 160, 150, 200])]\nBackground prompt: A realistic scene\nNegative prompt: "
     ],
     "A realistic photo of a scene with a white laptop and a red chair": [
-        "[]\nBackground prompt: A realistic top-down view\nNegative prompt: "
+        "[('a white laptop', [120, 150, 272, 160]), ('a red chair', [50, 200, 120, 150])]\nBackground prompt: A realistic indoor scene\nNegative prompt: "
     ],
     "A realistic photo of a scene with a yellow bottle and an orange chair": [
-        "[]\nBackground prompt: Caption: A realistic scene of three skiers standing in a line on the snow near a palm tree\nNegative prompt: Objects: [('a skier', [5, 152, 139, 168]), ('a skier', [278, 192, 121, 158]), ('a skier', [148, 173, 124, 155]), ('a palm tree', [404, 105, 103, 251])]"
+        "[('a yellow bottle', [100, 150, 60, 140]), ('an orange chair', [250, 180, 130, 180])]\nBackground prompt: A realistic scene\nNegative prompt:"
     ],
     "A realistic photo of a scene with a green car and a blue bottle": [
-        "[]\nBackground prompt: A realistic outdoor scene with snow\nNegative prompt: "
+        "[('a green car', [50, 280, 180, 120]), ('a blue bottle', [200, 300, 80, 180])]\nBackground prompt: : A realistic scene\nNegative prompt: "
     ],
     "A realistic photo of a scene with a black cat and a brown cup": [
-        "[]\nBackground prompt: Caption: An oil painting of a pink dolphin jumping on the left of a steam boat on the sea\nNegative prompt: Objects: [('a steam boat', [232, 225, 257, 149]), ('a jumping pink dolphin', [21, 249, 189, 123])]"
+        "[('a black cat', [35, 126, 178, 195]), ('a brown cup', [200, 220, 112, 95])]\nBackground prompt:A realistic indoor scene\nNegative prompt: "
     ],
     "A realistic photo of a scene with a purple backpack and a red chair": [
-        "[]\nBackground prompt: An oil painting of the sea\nNegative prompt: "
+        "[('a purple backpack', [50, 215, 120, 150]), ('a red chair', [200, 180, 120, 150])]\nBackground prompt:A realistic scene\nNegative prompt: "
     ],
     "A realistic photo of a scene with a gray dog and a brown chair": [
-        "[]\nBackground prompt: Caption: A cute cat and an angry dog without birds\nNegative prompt: Objects: [('a cute cat', [51, 67, 271, 324]), ('an angry dog', [302, 119, 211, 228])]"
+        "[('a gray dog', [75, 150, 150, 200]), ('a brown chair', [220, 250, 150, 180])]\nBackground prompt:A realistic indoor scene\nNegative prompt: "
     ],
     "A realistic photo of a scene with a black backpack and a brown dog": [
-        "[]\nBackground prompt: A realistic scene\nNegative prompt: birds"
+        "[('a black backpack', [100, 250, 120, 150]), ('a brown dog', [250, 220, 170, 130])]\nBackground prompt:A realistic outdoor scene\nNegative prompt: "
     ],
     "A realistic photo of a scene with a yellow book and a pink bowl": [
-        "[]\nBackground prompt: Caption: Two pandas in a forest without flowers\nNegative prompt: Objects: [('a panda', [30, 171, 212, 226]), ('a panda', [264, 173, 222, 221])]"
+        "[('a yellow book', [100, 200, 150, 100]), ('a pink bowl', [250, 220, 120, 60])]\nBackground prompt: A realistic scene\nNegative prompt: "
     ],
     "A realistic photo of a scene with a gray book and a white chair": [
-        "[]\nBackground prompt: A forest\nNegative prompt: flowers"
+        "[('a gray book', [180, 200, 152, 102]), ('a white chair', [50, 120, 150, 180])]\nBackground prompt:A realistic indoor scene\nNegative prompt: "
     ],
     "A realistic photo of a scene with a yellow backpack and an orange car": [
-        "[]\nBackground prompt: Caption: An oil painting of a living room scene without chairs with a painting mounted on the wall, a cabinet below the painting, and two flower vases on the cabinet\nNegative prompt: Objects: [('a painting', [88, 85, 335, 203]), ('a cabinet', [57, 308, 404, 201]), ('a flower vase', [166, 222, 92, 108]), ('a flower vase', [328, 222, 92, 108])]"
+        "[('a yellow backpack', [50, 240, 100, 120]), ('an orange car', [200, 250, 160, 80])]\nBackground prompt:A realistic outdoor scene\nNegative prompt: "
     ],
     "A realistic photo of a scene with a black book and a brown car": [
-        "[]\nBackground prompt: An oil painting of a living room scene\nNegative prompt: chairs"
+        "[('a black book', [185, 158, 142, 183]), ('a brown car', [15, 260, 225, 135])]\nBackground prompt:A realistic scene\nNegative prompt: "
     ],
     "A realistic photo of a scene with a white laptop and a red cat": [
         "[('a white laptop', [50, 300, 150, 100]), ('a red cat', [300, 200, 160, 200])]\nBackground prompt: A realistic photo of a scene\nNegative prompt: "

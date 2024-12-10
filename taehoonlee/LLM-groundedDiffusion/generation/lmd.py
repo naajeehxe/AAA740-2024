@@ -1,4 +1,6 @@
+from regex import F
 import torch
+import pdb
 import models
 import utils
 from models import pipelines, sam, model_dict
@@ -8,6 +10,7 @@ from prompt import (
     DEFAULT_OVERALL_NEGATIVE_PROMPT,
 )
 from easydict import EasyDict
+import os
 
 vae, tokenizer, text_encoder, unet, scheduler, dtype = (
     model_dict.vae,
@@ -222,17 +225,17 @@ def run(
     loss_scale=5,
     loss_threshold=5.0,
     max_iter=[4] * 5 + [3] * 5 + [2] * 5 + [2] * 5 + [1] * 10,
-    max_index_step=30,
+    max_index_step=30, #!
     overall_loss_scale=5,
-    overall_loss_threshold=5.0,
+    overall_loss_threshold=1.0,
     overall_max_iter=[4] * 5 + [3] * 5 + [2] * 5 + [2] * 5 + [1] * 10,
-    overall_max_index_step=30,
+    overall_max_index_step=30, #!
     fg_top_p=0.2,
     bg_top_p=0.2,
     overall_fg_top_p=0.2,
     overall_bg_top_p=0.2,
     fg_weight=1.0,
-    bg_weight=4.0,
+    bg_weight=10.0,
     overall_fg_weight=1.0,
     overall_bg_weight=4.0,
     ref_ca_loss_weight=2.0,
@@ -252,7 +255,7 @@ def run(
     # Use reference cross attention to guide the cross attention in the overall generation
     use_ref_ca=True,
     use_autocast=False,
-    verbose=False,
+    verbose=True,
 ):
     """
     spec: the spec for generation (see generate.py for how to construct a spec)
@@ -355,6 +358,7 @@ def run(
         use_ratio_based_loss=False,
         guidance_attn_keys=overall_guidance_attn_keys,
         verbose=True,
+        use_strength_loss=False, #* For the strength loss
     )
 
     sam_refine_kwargs = dict(
@@ -430,6 +434,23 @@ def run(
                 fast_rate=2,
                 verbose=verbose,
             )
+
+            print(f"len(mask_tensor_list): {len(mask_tensor_list)}")
+            import matplotlib.pyplot as plt
+
+            # Create a directory to save the masks if it doesn't exist
+            output_dir = "/home/taehoonlee/AAA740-2024/taehoonlee/LLM-groundedDiffusion/generation/masks/palm_tree"
+            os.makedirs(output_dir, exist_ok=True)
+
+            # Visualize and save each mask tensor
+            for i, mask_tensor in enumerate(mask_tensor_list):
+                plt.figure()
+                plt.imshow(mask_tensor.cpu().numpy(), cmap='gray')
+                plt.title(f"Mask {i}")
+                plt.axis('off')
+                plt.savefig(os.path.join(output_dir, f"mask_first_control_10_steps.png"))
+                plt.close()
+            pdb.set_trace()
         else:
             # No per-box guidance
             (latents_all_list, mask_tensor_list, saved_attns_list, so_img_list) = (
@@ -526,6 +547,7 @@ def run(
             ref_ca_loss_weight=ref_ca_loss_weight,
             use_ratio_based_loss=False,
             verbose=True,
+            use_strength_loss=True, #* For the strength loss
         )
 
         # Generate with composed latents

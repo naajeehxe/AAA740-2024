@@ -1,4 +1,5 @@
 import torch
+import pdb
 import torch.nn.functional as F
 import math
 from collections.abc import Iterable
@@ -88,21 +89,30 @@ def get_phrase_indices(tokenizer, prompt, phrases, verbose=False, words=None, in
 
     return object_positions
 
-def add_ca_loss_per_attn_map_to_loss(loss, attn_map, object_number, bboxes, object_positions, use_ratio_based_loss=True, fg_top_p=0.2, bg_top_p=0.2, fg_weight=1.0, bg_weight=1.0, verbose=False):
+def add_ca_loss_per_attn_map_to_loss(loss, attn_map, object_number, bboxes, object_positions, use_strength_loss=False, use_ratio_based_loss=True, fg_top_p=0.2, bg_top_p=0.2, fg_weight=1.0, bg_weight=1.0, verbose=True):
     """
     fg_top_p, bg_top_p, fg_weight, and bg_weight are only used with max-based loss
     """
-    
+ 
+
     # Uncomment to debug:
     # print(fg_top_p, bg_top_p, fg_weight, bg_weight)
     
     # b is the number of heads, not batch
-    b, i, j = attn_map.shape
-    H = W = int(math.sqrt(i))
+    b, i, j = attn_map.shape # i = 64
+    H = W = int(math.sqrt(i)) # H = W = 8
+
+    if verbose:
+        print(f"attn_map shape: {attn_map.shape}, H: {H}, W: {W}") # [8 ,64, 77]
+        pdb.set_trace()
+
     for obj_idx in range(object_number):
         obj_loss = 0
         mask = torch.zeros(size=(H, W), device="cuda")
         obj_boxes = bboxes[obj_idx]
+
+        if verbose:
+            print(obj_boxes)
 
         # We support two level (one box per phrase) and three level (multiple boxes per phrase)
         if not isinstance(obj_boxes[0], Iterable):
@@ -114,10 +124,29 @@ def add_ca_loss_per_attn_map_to_loss(loss, attn_map, object_number, bboxes, obje
             mask[y_min: y_max, x_min: x_max] = 1
 
         for obj_position in object_positions[obj_idx]:
+            
+            # print(f"obj_position: {obj_position}")
+            # pdb.set_trace()
+
             # Could potentially optimize to compute this for loop in batch.
             # Could crop the ref cross attention before saving to save memory.
             
-            ca_map_obj = attn_map[:, :, obj_position].reshape(b, H, W)
+            ca_map_obj = attn_map[:, :, obj_position].reshape(b, H, W) # 현재 단어 토큰의 위치에 대한 attention map을 가져온다. ex) shape = [batch=8, 64, 1] -> reshape -> [8, 8, 8]
+
+
+            #! use_strength_loss is just for experiment. custom prompt에 대해서 하드코딩됨.
+            # print(f"use_strength_loss: {use_strength_loss}")
+            if use_strength_loss:
+                warnings.warn(" U using Experimental Attribution Strength Loss! please check precisely.")
+                # print(obj_position == 6)
+                # pdb.set_trace()
+                if obj_position != 6:
+                    print("obj_position != 6, so pass....")
+                    continue
+
+            if verbose:
+                print(f"obj_position: {obj_position}, ca_map_obj shape: {ca_map_obj.shape}") # dog 의 문장에서의 position ex) 9
+                pdb.set_trace()
 
             if use_ratio_based_loss:
                 warnings.warn("Using ratio-based loss, which is deprecated. Max-based loss is recommended. The scale may be different.")
@@ -128,6 +157,7 @@ def add_ca_loss_per_attn_map_to_loss(loss, attn_map, object_number, bboxes, obje
                 obj_loss += torch.mean((1 - activation_value) ** 2)
                 # if verbose:
                 #     print(f"enforce attn to be within the mask loss: {torch.mean((1 - activation_value) ** 2).item():.2f}")
+
             else:
                 # Max-based loss function
                 
@@ -137,12 +167,24 @@ def add_ca_loss_per_attn_map_to_loss(loss, attn_map, object_number, bboxes, obje
                 k_bg = ((1 - mask).sum() * bg_top_p).long().clamp_(min=1)
                 
                 mask_1d = mask.view(1, -1)
+
+                if verbose:
+                    pdb.set_trace()
+                    print(f"mask_1d shape: {mask_1d.shape}") # 1, 64
+                    print(f"k_fg: {k_fg}, k_bg: {k_bg}") # 3, 9
                 
                 # Take the topk over spatial dimension, and then take the sum over heads dim
                 # The mean is over k_fg and k_bg dimension, so we don't need to sum and divide on our own.
-                obj_loss += (1 - (ca_map_obj * mask_1d).topk(k=k_fg).values.mean(dim=1)).sum(dim=0) * fg_weight
-                obj_loss += ((ca_map_obj * (1 - mask_1d)).topk(k=k_bg).values.mean(dim=1)).sum(dim=0) * bg_weight    
+                obj_loss += (1 - (ca_map_obj * mask_1d).topk(k=k_fg).values.mean(dim=1)).sum(dim=0) * fg_weight 
+                obj_loss += ((ca_map_obj * (1 - mask_1d)).topk(k=k_bg).values.mean(dim=1)).sum(dim=0) * bg_weight
 
+                if verbose:
+                    pdb.set_trace()
+                    print(f"ca_map_obj * mask_1d shape: {(ca_map_obj * mask_1d).shape}") # [8, 64]
+                    print(f"ca_map_obj * mask_1d topk shape: {(ca_map_obj * mask_1d).topk(k=k_fg)}") # [8, 3] 
+                print(obj_loss)
+                print(object_positions[obj_idx])
+                
         loss += obj_loss / len(object_positions[obj_idx])
         
     return loss
@@ -241,7 +283,7 @@ def add_ref_ca_loss_per_attn_map_to_lossv2(loss, saved_attn, object_number, bbox
         
     return loss
 
-def compute_ca_lossv3(saved_attn, bboxes, object_positions, guidance_attn_keys, ref_ca_saved_attns=None, ref_ca_last_token_only=True, ref_ca_word_token_only=False, word_token_indices=None, index=None, ref_ca_loss_weight=1.0, verbose=False, **kwargs):
+def compute_ca_lossv3( saved_attn, bboxes, object_positions, guidance_attn_keys, use_strength_loss, ref_ca_saved_attns=None, ref_ca_last_token_only=True, ref_ca_word_token_only=False, word_token_indices=None, index=None, ref_ca_loss_weight=1.0, verbose=False, **kwargs):
     """
     The `saved_attn` is supposed to be passed to `save_attn_to_dict` in `cross_attention_kwargs` prior to computing ths loss.
     `AttnProcessor` will put attention maps into the `save_attn_to_dict`.
@@ -255,14 +297,14 @@ def compute_ca_lossv3(saved_attn, bboxes, object_positions, guidance_attn_keys, 
     if object_number == 0:
         return loss
     
-    for attn_key in guidance_attn_keys:
+    for attn_key in guidance_attn_keys: # 이 loss를 attention key만큼 반복한다.
         # We only have 1 cross attention for mid.
         attn_map_integrated = saved_attn[attn_key] #* saved attention 
         if not attn_map_integrated.is_cuda:
             attn_map_integrated = attn_map_integrated.cuda()
         # Example dimension: [20, 64, 77]
         attn_map = attn_map_integrated.squeeze(dim=0) #* attention map is combined to caculate the loss.
-        loss = add_ca_loss_per_attn_map_to_loss(loss, attn_map, object_number, bboxes, object_positions, verbose=verbose, **kwargs)    
+        loss = add_ca_loss_per_attn_map_to_loss(loss, attn_map, object_number, bboxes, object_positions, use_strength_loss, verbose=False, **kwargs)    
 
     num_attn = len(guidance_attn_keys)
 
@@ -281,6 +323,6 @@ def compute_ca_lossv3(saved_attn, bboxes, object_positions, guidance_attn_keys, 
         if verbose:
             print(f"loss {loss.item():.3f}, reference attention loss (weighted) {ref_loss.item() / (object_number * num_attn):.3f}")
         
-        loss += ref_loss / (object_number * num_attn)
+        loss += ref_loss / (object_number * num_attn) # guidance 주는 attention key 개수만큼 평균내서 수행.
     
     return loss

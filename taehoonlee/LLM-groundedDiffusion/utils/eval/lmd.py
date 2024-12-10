@@ -1,3 +1,4 @@
+import pdb
 import re
 import numpy as np
 from functools import partial
@@ -214,6 +215,8 @@ def get_prompt_predicates_spatial(num_prompts=25, left_right_only=False):
 
     for ind in range(num_prompts):
         np.random.seed(ind)
+        # print(locations)
+        # pdb.set_trace()
         for location1, location2, verify_fn in locations:
             object_name1, object_name2 = np.random.choice(
                 evaluate_classes_np, 2, replace=False)

@@ -1,6 +1,7 @@
 import pdb
 import torch
 import models
+import matplotlib.pyplot as plt
 import utils
 from models import pipelines, sam, model_dict
 from utils import parse, guidance, attn, latents, vis
@@ -18,7 +19,8 @@ vae, tokenizer, text_encoder, unet, scheduler, dtype = (
     model_dict.scheduler,
     model_dict.dtype,
 )
-
+print ("#####################")
+# pdb.set_trace()
 version = "lmd_plus"
 
 # Hyperparams
@@ -41,7 +43,6 @@ discourage_mask_below_coarse_iou = 0.25
 
 offload_cross_attn_to_cpu = False
 
-
 def generate_single_object_with_box(
     prompt,
     box,
@@ -55,7 +56,7 @@ def generate_single_object_with_box(
     sam_refine_kwargs,
     num_inference_steps,
     gligen_scheduled_sampling_beta=0.3,
-    verbose=False,
+    verbose=True,
     visualize=False,
     **kwargs,
 ):
@@ -229,7 +230,7 @@ def run(
     # Use reference cross attention to guide the cross attention in the overall generation
     use_ref_ca=True,
     use_autocast=True,
-    verbose=False,
+    verbose=False, #! pdb option
 ):
     """
     spec: the spec for generation (see generate.py for how to construct a spec)
@@ -261,6 +262,9 @@ def run(
     frozen_step_ratio = min(max(frozen_step_ratio, 0.0), 1.0)
     frozen_steps = int(num_inference_steps * frozen_step_ratio)
 
+    if verbose:
+        pdb.set_trace()
+
     print(
         "Key generation settings:",
         spec,
@@ -272,13 +276,16 @@ def run(
         overall_max_index_step,
     )
 
+    print("convert specs")
+
     (
         so_prompt_phrase_word_box_list,
         overall_prompt,
         overall_phrases_words_bboxes,
     ) = parse.convert_spec(spec, height, width, verbose=verbose)
 
-    # pdb.set_trace()
+    if verbose:
+        pdb.set_trace()
     
     print( "After the convert of the spec")
     print(f"so_prompt_phrase_word_box_list:{so_prompt_phrase_word_box_list}")
@@ -289,10 +296,13 @@ def run(
         overall_prompt = overall_prompt_override.strip()
 
     overall_phrases, overall_words, overall_bboxes = (
-        [item[0] for item in overall_phrases_words_bboxes], #* phrase level. ex) a bird nest
-        [item[1] for item in overall_phrases_words_bboxes], #* word level. ex) nest
-        [item[2] for item in overall_phrases_words_bboxes], #* bounding box. ex)(0.39, 0.29, 0.54, 0.39)
+        [item[0] for item in overall_phrases_words_bboxes], #* phrase level. ex) a blue cube, a red cube, a vase
+        [item[1] for item in overall_phrases_words_bboxes], #* word level. ex) cube, cube, vase
+        [item[2] for item in overall_phrases_words_bboxes], #* bounding box. ex)(0.39, 0.29, 0.54, 0.39), (0.39, 0.29, 0.54, 0.39), (0.39, 0.29, 0.54, 0.39), (0.39, 0.29, 0.54, 0.39)
     )
+
+    if verbose:
+        pdb.set_trace()
 
     # The so box is centered but the overall boxes are not (since we need to place to the right place).
     #todo# Ablation study with the so_center_box
@@ -312,7 +322,13 @@ def run(
             print(
                 f"centered so_prompt_phrase_word_box_list: {so_prompt_phrase_word_box_list}"
             )
+    
+    
+    
     so_boxes = [item[-1] for item in so_prompt_phrase_word_box_list]
+
+    if verbose:
+        print(f"so_boxes: {so_boxes}")
 
     if "extra_neg_prompt" in spec and spec["extra_neg_prompt"]:
         so_negative_prompt = spec["extra_neg_prompt"] + ", " + so_negative_prompt
@@ -339,6 +355,9 @@ def run(
         W=W,
     )
 
+    if verbose:
+        pdb.set_trace()
+
     # if verbose:
     #     vis.visualize_bboxes(
     #         bboxes=[item[-1] for item in so_prompt_phrase_word_box_list], H=H, W=W
@@ -348,6 +367,10 @@ def run(
 
     with torch.autocast("cuda", enabled=use_autocast):
         so_prompts = [item[0] for item in so_prompt_phrase_word_box_list]
+
+        if verbose:
+            print(f"so_prompts: {so_prompts}")
+
         if so_prompts:
             so_input_embeddings = models.encode_prompts(
                 prompts=so_prompts,
@@ -359,12 +382,13 @@ def run(
         else:
             so_input_embeddings = []
             print(so_input_embeddings)
-            # pdb.set_trace()
+
 
 #* go to the latents.py
+        if verbose:
+            pdb.set_trace()
 
-        # pdb.set_trace()
-        input_latents_list, latents_bg = latents.get_input_latents_list(
+        input_latents_list, latents_bg = latents.get_input_latents_list_lmd_plus(
             model_dict,
             bg_seed=bg_seed,
             fg_seed_start=fg_seed_start,
@@ -375,6 +399,16 @@ def run(
             verbose=True, #! changed. just for debugging
             so_prompt_phrase_box_list=so_prompt_phrase_word_box_list #! changed. just for debugging
         )
+
+        if verbose:
+            print(f"so_box_len : {len(so_boxes)}")
+            print(f"len: {len(input_latents_list)}, one_input_latent_shape: {input_latents_list[0].shape}")
+            print(f"shape: {latents_bg.shape}") # 1, 4, 64, 64
+
+        # 배경 latent 와 single object latent 들을 가져온다.
+            # input latents 들은 bg latent 와 fg latent 들을 mask 부분을 따라 blending 한 latent이다.
+        if verbose:
+            pdb.set_trace()
 
         if use_fast_schedule:
             fast_after_steps = (
@@ -406,6 +440,7 @@ def run(
                 fast_rate=2,
                 verbose=verbose,
             ) # per box masekd latent generation.
+
             """
             latents_all_list: 모든 latent list.
             mask_tensor_list: list of mask_tensor
@@ -421,6 +456,28 @@ def run(
                 [],
                 [],
             )
+
+
+            
+        if verbose: # object의 수만큼 있어야 함.
+            print(f"latents_all_list: {len(latents_all_list)}")
+            print(f"latent_shape: {latents_all_list[0].shape}")
+            # 51, 1, 4, 64, 64
+            print(f"mask_tensor_list: {len(mask_tensor_list)}")
+            print(f"mask_shape: {mask_tensor_list[0].shape}")
+            # 64, 64
+            print(f"saved_attns_list: {len(saved_attns_list)}")
+            print(f"len_saved_attns_list[0]: {len(saved_attns_list[0])}")
+            # 50
+            # 각 U_net에서 나온 attention을 다 저장
+            print(f"len_saved_attns_list[0][0]: {saved_attns_list[0][0].keys()}")
+            # [('down', 0, 0, 0), ('down', 0, 1, 0), ('down', 1, 0, 0), ('down', 1, 1, 0), ('down', 2, 0, 0), ('down', 2, 1, 0), ('mid', 0, 0, 0), ('up', 1, 0, 0), ('up', 1, 1, 0), ('up', 1, 2, 0), ('up', 2, 0, 0), ('up', 2, 1, 0), ('up', 2, 2, 0), ('up', 3, 0, 0), ('up', 3, 1, 0), ('up', 3, 2, 0)]
+            print(f"so_img_list: {len(so_img_list)}")
+            
+
+
+            pdb.set_trace()
+
 
 #* step 2 : overall generation with masked latents as priors.
 # 한 프롬프트 내에서 일어나는 일이다.
@@ -445,6 +502,28 @@ def run(
             fast_after_steps=fast_after_steps,
         )
 
+
+        if verbose:
+            print("composed_latents: ", composed_latents.shape)  # 조합해서 만든 latent [51, 1, 4, 64, 64]
+            print("foreground_indices: ", foreground_indices.shape)  # 64 64 중에서 foreground에 해당하는 index만 1로 표시
+            print("offset_list: ", offset_list)  # foreground에 해당하는 index의 개수 파악
+
+            # Visualize composed_latents
+
+            print("###############Visualizing composed latents##########")
+            composed_latents_np = composed_latents.cpu().detach().numpy()
+            plt.figure(figsize=(20, 100))
+            for i in range(composed_latents_np.shape[0]):
+                for j in range(composed_latents_np.shape[2]):
+                    plt.subplot(composed_latents_np.shape[0], composed_latents_np.shape[2], i * composed_latents_np.shape[2] + j + 1)
+                    plt.imshow(composed_latents_np[i, 0, j], cmap='viridis')
+                    plt.title(f'Latent {i}-{j}')
+                    plt.axis('off')
+            plt.savefig('/home/taehoonlee/AAA740-2024/taehoonlee/LLM-groundedDiffusion/attention_maps/composed_latents/latent.png')
+            plt.close()
+
+            pdb.set_trace()
+
         # NOTE: need to ensure overall embeddings are generated after the update of overall prompt
         (
             overall_object_positions,
@@ -467,15 +546,29 @@ def run(
             negative_prompt=overall_negative_prompt,
             text_encoder=text_encoder,
         )
+        if verbose:
+            print("use_ref_ca:", use_ref_ca)
+            pdb.set_trace()
 
         if use_ref_ca:
+
+            print("###############Using reference cross attention for overall generation##########")
             # ref_ca_saved_attns has the same hierarchy as bboxes
             ref_ca_saved_attns = []
 
 #* for better alignmet, we shift the attention. and then apply it to the overall generation.
 
             flattened_box_idx = 0
+            
+
+            if verbose:
+                print(f"overall_bboxes: {overall_bboxes}")
+                pdb.set_trace()
             for bboxes in overall_bboxes:
+                if verbose:
+                    print(f"bboxes: {bboxes}")
+                    pdb.set_trace()
+
                 # bboxes: correspond to a phrase
                 ref_ca_current_phrase_saved_attns = []
                 for bbox in bboxes:
@@ -489,9 +582,18 @@ def run(
                             guidance_attn_keys=guidance_attn_keys,
                             horizontal_shift_only=horizontal_shift_only,
                         )
-                    ref_ca_current_phrase_saved_attns.append(saved_attns) 
+                    ref_ca_current_phrase_saved_attns.append(saved_attns) # shift한 attnetion을 저장.
                     flattened_box_idx += 1
                 ref_ca_saved_attns.append(ref_ca_current_phrase_saved_attns)
+
+        if verbose:
+            print(f"ref_ca_saved_attns: {len(ref_ca_saved_attns)}")
+            print(f"len_ref_ca_saved_attns[0]: {len(ref_ca_saved_attns[0])}")
+            # print(f"ref_ref_ca_saved_attns[0]: {ref_ca_saved_attns[0]}")
+            print(f"len_ref_ca_saved_attns[0][0]: {len(ref_ca_saved_attns[0][0])}")
+            print(f"ref_ca_saved_attns[0][0][0]: {ref_ca_saved_attns[0][0][0].keys()}")
+            print(f"value: {ref_ca_saved_attns[0][0][0][('up', 1, 2, 0)].shape}")
+            pdb.set_trace()
 
         overall_bboxes_flattened, overall_phrases_flattened = [], []
         for overall_bboxes_item, overall_phrase in zip(overall_bboxes, overall_phrases):
@@ -528,7 +630,10 @@ def run(
 
         
 #* compose 된 latent와 shift 된 attention을 이용하여 overall generation을 수행한다.
-
+        
+        if verbose:
+            print("###############Overall generation with composed latents / generate gligen ##########")
+            pdb.set_trace()
 
         _, images = pipelines.generate_gligen(
             model_dict,

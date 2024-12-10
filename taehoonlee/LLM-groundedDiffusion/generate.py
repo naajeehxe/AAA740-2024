@@ -1,4 +1,5 @@
 import pdb
+import json
 from utils import parse, vis, cache
 from utils.llm import get_full_model_name, model_names
 from utils.parse import parse_input_with_negative, filter_boxes, show_boxes
@@ -312,6 +313,8 @@ for regenerate_ind in range(args.regenerate):
 
                 print("spec:", spec)
 
+                with open(os.path.join(parse.img_dir, 'info.json'), 'w') as f: json.dump(spec, f, indent=4)
+                
                 if args.dry_run:
                     # Skip generation
                     ind += 1

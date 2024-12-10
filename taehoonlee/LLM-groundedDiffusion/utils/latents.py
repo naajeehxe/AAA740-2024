@@ -50,7 +50,7 @@ def compose_latents(model_dict, latents_all_list, mask_tensor_list, num_inferenc
         composed_latents = torch.zeros((fast_after_steps + 1, *latents_bg.shape), dtype=dtype)
     else:
         # Otherwise we compose all steps so that we don't need to compose again if we change the frozen steps.
-        composed_latents = torch.zeros((num_inference_steps + 1, *latents_bg.shape), dtype=dtype)
+        composed_latents = torch.zeros((num_inference_steps + 1, *latents_bg.shape), dtype=dtype) # latents_bg.shape = (51, 1, 4, 64, 64)
     composed_latents[0] = latents_bg
     
     foreground_indices = torch.zeros(latents_bg.shape[-2:], dtype=torch.long)
@@ -63,8 +63,8 @@ def compose_latents(model_dict, latents_all_list, mask_tensor_list, num_inferenc
         # This has two functionalities: 
         # 1. copies the right initial latents from the right place (for centered so generation), 2. copies the right initial latents (since we have foreground blending) for centered/original so generation.
         for mask_idx in mask_order:
-            latents_all, mask_tensor = latents_all_list[mask_idx], mask_tensor_list[mask_idx]
-            
+            latents_all, mask_tensor = latents_all_list[mask_idx], mask_tensor_list[mask_idx] # 해당 object의 latent와 mask 가져옴
+
             # Note: need to be careful to not copy from zeros due to shifting. 
             mask_tensor = utils.binary_mask_to_box_mask(mask_tensor, to_device=False)
 
@@ -74,6 +74,13 @@ def compose_latents(model_dict, latents_all_list, mask_tensor_list, num_inferenc
     # This is still needed with `compose_box_to_bg` to ensure the foreground latent is still visible and to compute foreground indices.
     for mask_idx in mask_order:
         latents_all, mask_tensor = latents_all_list[mask_idx], mask_tensor_list[mask_idx]
+
+        # print("len_latents_all:", len(latents_all_list))
+        # print("mask_tensor:", mask_tensor.shape)
+        # print("latents_all:", latents_all.shape)
+
+        # pdb.set_trace()
+
         foreground_indices = foreground_indices * (~mask_tensor) + (mask_idx + 1) * mask_tensor
         mask_tensor_expanded = mask_tensor[None, None, None, ...].to(dtype)
         if use_fast_schedule:
@@ -125,6 +132,48 @@ def compose_latents_with_alignment(
     return composed_latents, foreground_indices, offset_list
 
 def get_input_latents_list(model_dict, bg_seed, fg_seed_start, fg_blending_ratio, height, width, so_prompt_phrase_box_list=None, so_boxes=None, verbose=False):
+    """
+    Note: the returned input latents are scaled by `scheduler.init_noise_sigma`
+    """
+    unet, scheduler, dtype = model_dict.unet, model_dict.scheduler, model_dict.dtype
+    
+    generator_bg = torch.manual_seed(bg_seed)  # Seed generator to create the inital latent noise
+    latents_bg = get_unscaled_latents(batch_size=1, in_channels=unet.config.in_channels, height=height, width=width, generator=generator_bg, dtype=dtype)
+
+    input_latents_list = []
+    
+    if so_boxes is None:
+        # For compatibility
+        so_boxes = [item[-1] for item in so_prompt_phrase_box_list]
+    
+    # change this changes the foreground initial noise
+    for idx, obj_box in enumerate(so_boxes):
+        H, W = height // 8, width // 8
+        fg_mask = utils.proportion_to_mask(obj_box, H, W)
+
+        if verbose:
+            plt.imshow(fg_mask.cpu().numpy())
+            plt.show()
+        
+        fg_seed = fg_seed_start + idx
+        if fg_seed == bg_seed:
+            # We should have different seeds for foreground and background
+            fg_seed += 12345
+        
+        generator_fg = torch.manual_seed(fg_seed)
+        latents_fg = get_unscaled_latents(batch_size=1, in_channels=unet.config.in_channels, height=height, width=width, generator=generator_fg, dtype=dtype)
+    
+        input_latents = blend_latents(latents_bg, latents_fg, fg_mask, fg_blending_ratio=fg_blending_ratio)
+    
+        input_latents = input_latents * scheduler.init_noise_sigma
+    
+        input_latents_list.append(input_latents)
+    
+    latents_bg = latents_bg * scheduler.init_noise_sigma
+    
+    return input_latents_list, latents_bg
+
+def get_input_latents_list_lmd_plus(model_dict, bg_seed, fg_seed_start, fg_blending_ratio, height, width, so_prompt_phrase_box_list=None, so_boxes=None, verbose=False):
     """
     Note: the returned input latents are scaled by `scheduler.init_noise_sigma`
     """

@@ -1,12 +1,12 @@
-CUDA_VISIBLE_DEVICES=4 python generate.py \
-  --prompt-type lmd_spatial \
+CUDA_VISIBLE_DEVICES=7 python generate.py \
+  --prompt-type custom \
   --model gpt-4 \
   --save-suffix "gpt-4" \
   --repeats 1 \
   --frozen_step_ratio 0.5 \
   --regenerate 1 \
-  --force_run_ind 20\
-  --run-model lmd_plus \
+  --force_run_ind 30\
+  --run-model lmd \
   --no-scale-boxes-default \
   --template_version v0.2 \
   --experiment True

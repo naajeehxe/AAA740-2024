@@ -1,4 +1,5 @@
 import os
+import pdb
 import matplotlib.pyplot as plt
 from torchsummary import summary
 import pdb
@@ -18,13 +19,16 @@ os.makedirs('attention_maps', exist_ok=True)
 
 # All keys: [('down', 0, 0, 0), ('down', 0, 1, 0), ('down', 1, 0, 0), ('down', 1, 1, 0), ('down', 2, 0, 0), ('down', 2, 1, 0), ('mid', 0, 0, 0), ('up', 1, 0, 0), ('up', 1, 1, 0), ('up', 1, 2, 0), ('up', 2, 0, 0), ('up', 2, 1, 0), ('up', 2, 2, 0), ('up', 3, 0, 0), ('up', 3, 1, 0), ('up', 3, 2, 0)]
 # Note that the first up block is `UpBlock2D` rather than `CrossAttnUpBlock2D` and does not have attention. The last index is always 0 in our case since we have one `BasicTransformerBlock` in each `Transformer2DModel`.
-# DEFAULT_GUIDANCE_ATTN_KEYS = [("mid", 0, 0, 0), ("up", 1, 0, 0), ("up", 1, 1, 0), ("up", 1, 2, 0)]
-DEFAULT_GUIDANCE_ATTN_KEYS= [('down', 0, 0, 0), ('down', 0, 1, 0), ('down', 1, 0, 0), ('down', 1, 1, 0), ('down', 2, 0, 0), ('down', 2, 1, 0), ('mid', 0, 0, 0), ('up', 1, 0, 0), ('up', 1, 1, 0), ('up', 1, 2, 0), ('up', 2, 0, 0), ('up', 2, 1, 0), ('up', 2, 2, 0), ('up', 3, 0, 0), ('up', 3, 1, 0), ('up', 3, 2, 0)]
+DEFAULT_GUIDANCE_ATTN_KEYS = [("mid", 0, 0, 0), ("up", 1, 0, 0), ("up", 1, 1, 0), ("up", 1, 2, 0)]
+# DEFAULT_GUIDANCE_ATTN_KEYS= [('down', 0, 0, 0), ('down', 0, 1, 0), ('down', 1, 0, 0), ('down', 1, 1, 0), ('down', 2, 0, 0), ('down', 2, 1, 0), ('mid', 0, 0, 0), ('up', 1, 0, 0), ('up', 1, 1, 0), ('up', 1, 2, 0), ('up', 2, 0, 0), ('up', 2, 1, 0), ('up', 2, 2, 0), ('up', 3, 0, 0), ('up', 3, 1, 0), ('up', 3, 2, 0)]
 
-def latent_backward_guidance(scheduler, unet, cond_embeddings, index, bboxes, object_positions, t, latents, loss, loss_scale = 30, loss_threshold = 0.2, max_iter = 5, max_index_step = 10, cross_attention_kwargs=None, ref_ca_saved_attns=None, guidance_attn_keys=None, verbose=False, clear_cache=False, **kwargs):
+def latent_backward_guidance(scheduler, unet, cond_embeddings, index, bboxes, object_positions, t, latents, loss, use_strength_loss, loss_scale = 30, loss_threshold = 0.2, max_iter = 5, max_index_step = 10, cross_attention_kwargs=None, ref_ca_saved_attns=None, guidance_attn_keys=None, verbose=True, clear_cache=False, **kwargs):
+
+    # print(f"use_strength_loss: {use_strength_loss}")
+    # pdb.set_trace()
 
     iteration = 0
-    
+    print(f"max_index_step: {max_index_step}")
     if index < max_index_step:
         if isinstance(max_iter, list):
             if len(max_iter) > index:
@@ -37,6 +41,10 @@ def latent_backward_guidance(scheduler, unet, cond_embeddings, index, bboxes, ob
         
         while (loss.item() / loss_scale > loss_threshold and iteration < max_iter and index < max_index_step):
             saved_attn = {}
+
+            # print("saved_attn", saved_attn)
+            # pdb.set_trace()
+
             full_cross_attention_kwargs = {
                 'save_attn_to_dict': saved_attn,
                 'save_keys': guidance_attn_keys,
@@ -51,9 +59,14 @@ def latent_backward_guidance(scheduler, unet, cond_embeddings, index, bboxes, ob
             
             unet(latent_model_input, t, encoder_hidden_states=cond_embeddings, return_cross_attention_probs=False, cross_attention_kwargs=full_cross_attention_kwargs)
 
+            # unet 한번 돌려서 saved_attn에 attention map 저장
+
+            # print("saved_attn", saved_attn)
+            # pdb.set_trace()
             # TODO: could return the attention maps for the required blocks only and not necessarily the final output
-            # update latents with guidance
-            loss = guidance.compute_ca_lossv3(saved_attn=saved_attn, bboxes=bboxes, object_positions=object_positions, guidance_attn_keys=guidance_attn_keys, ref_ca_saved_attns=ref_ca_saved_attns, index=index, verbose=verbose, **kwargs) * loss_scale
+            # calculate loss
+
+            loss = guidance.compute_ca_lossv3(saved_attn=saved_attn, bboxes=bboxes, object_positions=object_positions, guidance_attn_keys=guidance_attn_keys, ref_ca_saved_attns=ref_ca_saved_attns, index=index, verbose=verbose, use_strength_loss=use_strength_loss, **kwargs) * loss_scale
 
             if torch.isnan(loss):
                 print("**Loss is NaN**")
@@ -63,10 +76,10 @@ def latent_backward_guidance(scheduler, unet, cond_embeddings, index, bboxes, ob
 
             grad_cond = torch.autograd.grad(loss.requires_grad_(True), [latents])[0]
 
-            latents.requires_grad_(False)
+            latents.requires_grad_(False) # 이 latent에 대한 기울기 계산 중지
             
             if hasattr(scheduler, 'sigmas'):
-                latents = latents - grad_cond * scheduler.sigmas[index] ** 2
+                latents = latents - grad_cond * scheduler.sigmas[index] ** 2 # latent update.
             elif hasattr(scheduler, 'alphas_cumprod'):
                 warnings.warn("Using guidance scaled with alphas_cumprod")
                 # Scaling with classifier guidance
@@ -349,10 +362,14 @@ def generate_gligen(model_dict, latents, input_embeddings, num_inference_steps, 
     #* process the (text) input embeddings.
     text_embeddings, _, cond_embeddings = process_input_embeddings(input_embeddings)
     
-    if latents.dim() == 5:
+    if latents.dim() == 5: # 51, 1, 4, 64, 64
         # latents_all from the input side, different from the latents_all to be saved
         latents_all_input = latents
-        latents = latents[0]
+        print("latents_all_input shape:", latents_all_input.shape)
+        latents = latents[0] # 1, 4, 64, 64
+        print("latents shape:", latents.shape)
+
+        # pdb.set_trace()
     else:
         latents_all_input = None
     
@@ -384,7 +401,7 @@ def generate_gligen(model_dict, latents, input_embeddings, num_inference_steps, 
     boxes, phrase_embeddings, masks, condition_len = prepare_gligen_condition(bboxes, phrases, dtype, tokenizer, text_encoder, num_images_per_prompt)
     
     if semantic_guidance_bboxes and semantic_guidance:
-        loss = torch.tensor(10000.)
+        loss = torch.tensor(10000.) # 큰 값으로 tensor 초기화
         # TODO: we can also save necessary tokens only to save memory.
         # offload_guidance_cross_attn_to_cpu does not save too much since we only store attention map for each timestep.
         guidance_cross_attention_kwargs = {
@@ -425,11 +442,12 @@ def generate_gligen(model_dict, latents, input_embeddings, num_inference_steps, 
         if index == num_grounding_steps:
             gligen_enable_fuser(unet, False)
         
-        if semantic_guidance_bboxes and semantic_guidance:
+        if semantic_guidance_bboxes and semantic_guidance: #* attention transfer
             with torch.enable_grad():
                 latents, loss = latent_backward_guidance(scheduler, unet, cond_embeddings, index, semantic_guidance_bboxes, semantic_guidance_object_positions, t, latents, loss, cross_attention_kwargs=guidance_cross_attention_kwargs, **semantic_guidance_kwargs)
+                # print(f"latent shape: {latents.shape}, loss: {loss.item()}")
         # expand the latents if we are doing classifier-free guidance to avoid doing two forward passes.
-        latent_model_input = torch.cat([latents] * 2)
+        latent_model_input = torch.cat([latents] * 2) # 2개의 latents를 concat
 
 #* ---------- added code 11/22
 
@@ -457,7 +475,7 @@ def generate_gligen(model_dict, latents, input_embeddings, num_inference_steps, 
             256: (16, 16),
             64: (8, 8)
         }
-        
+
 #! SAVE ATTENTION PART
 
         # for i, key in enumerate(main_cross_attention_kwargs['save_attn_to_dict'].keys()):
@@ -501,7 +519,7 @@ def generate_gligen(model_dict, latents, input_embeddings, num_inference_steps, 
         #     plt.close()
 
         
-        # pdb.set_trace()
+        # # pdb.set_trace()
 
 
 #* --------- added code 11/22
@@ -525,7 +543,7 @@ def generate_gligen(model_dict, latents, input_embeddings, num_inference_steps, 
 #* added code 11/22 --------
 
         # Decode current latents to image
-        current_images = decode(vae, latents)
+        # current_images = decode(vae, latents)
         
         # # Save each image in the batch
         # for b, img in enumerate(current_images):
@@ -539,7 +557,14 @@ def generate_gligen(model_dict, latents, input_embeddings, num_inference_steps, 
         #     )
 
 #* ---------- added code 11/22
+
+        ## fronze step 실제로 이용되는 부분.. ##
+
+
         if frozen_mask is not None and index < frozen_steps:
+
+            #frozen step이면 denoise 한 latent에서 해당하는 mask 부분만 composed latent로 고정..!
+            #latents_all_input = composed_latents!
             latents = latents_all_input[index+1] * frozen_mask + latents * (1. - frozen_mask)
         
         # Do not save the latents in the fast steps

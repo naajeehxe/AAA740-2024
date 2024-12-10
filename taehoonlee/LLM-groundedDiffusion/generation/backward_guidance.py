@@ -119,7 +119,7 @@ def run(
         word_token_indices=overall_word_token_indices,
         guidance_attn_keys=overall_guidance_attn_keys,
         ref_ca_loss_weight=0.5,
-        verbose=True,
+        verbose=False,
     )
 
     img_latents, images = pipelines.generate_semantic_guidance(

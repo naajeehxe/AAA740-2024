@@ -1,6 +1,16 @@
 # 코드 흐름.
 
-*_generate.py_* -> *lmd_plus.py*
+*_generate.py_* 
+
+*lmd_plus.py_*
+    def (run)
+    so box 준비
+    so prompt encoding 해서 준비
+    
+*generate_single_object_with_box_*
+
+
+
 
 먼저 주어진 (spec) 을 convert
 
@@ -17,7 +27,8 @@ Spec을 converting 한 후에는 다음과 같이 주어진다.
 
 **overall_prompt** : An indoor scene with a blue cube, a red cube, a vase
 
-**overall_phrases_words_bboxes**:
+**overall_phrases_words_bboxes**: List.
+
 [('a blue cube', 'cube', [(0.39453125, 0.234375, 0.609375, 0.44921875)]), 
 
 ('a red cube', 'cube', [(0.39453125, 0.44921875, 0.609375, 0.6640625)]), 
