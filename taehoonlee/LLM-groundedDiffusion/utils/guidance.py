@@ -140,8 +140,9 @@ def add_ca_loss_per_attn_map_to_loss(loss, attn_map, object_number, bboxes, obje
                 warnings.warn(" U using Experimental Attribution Strength Loss! please check precisely.")
                 # print(obj_position == 6)
                 # pdb.set_trace()
-                if obj_position != 6:
-                    print("obj_position != 6, so pass....")
+                print(f"obj_position: {obj_position}, ca_map_obj shape: {ca_map_obj.shape}") # dog 의 문장에서의 position ex) 9
+                if obj_position != 8:
+                    print("obj_position != 8, so pass....")
                     continue
 
             if verbose:

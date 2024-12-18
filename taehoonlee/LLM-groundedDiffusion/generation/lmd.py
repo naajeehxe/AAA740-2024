@@ -227,7 +227,7 @@ def run(
     max_iter=[4] * 5 + [3] * 5 + [2] * 5 + [2] * 5 + [1] * 10,
     max_index_step=30, #!
     overall_loss_scale=5,
-    overall_loss_threshold=1.0,
+    overall_loss_threshold=3.0, #!
     overall_max_iter=[4] * 5 + [3] * 5 + [2] * 5 + [2] * 5 + [1] * 10,
     overall_max_index_step=30, #!
     fg_top_p=0.2,
@@ -235,9 +235,9 @@ def run(
     overall_fg_top_p=0.2,
     overall_bg_top_p=0.2,
     fg_weight=1.0,
-    bg_weight=10.0,
+    bg_weight=4.0, #!
     overall_fg_weight=1.0,
-    overall_bg_weight=4.0,
+    overall_bg_weight=20.0, #!
     ref_ca_loss_weight=2.0,
     so_center_box=True,
     fg_blending_ratio=0.01,
@@ -448,7 +448,7 @@ def run(
                 plt.imshow(mask_tensor.cpu().numpy(), cmap='gray')
                 plt.title(f"Mask {i}")
                 plt.axis('off')
-                plt.savefig(os.path.join(output_dir, f"mask_first_control_10_steps.png"))
+                plt.savefig(os.path.join(output_dir, f"mask_{i}.png"))
                 plt.close()
             pdb.set_trace()
         else:
